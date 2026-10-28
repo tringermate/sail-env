@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Built by web/build.js from game.template.html, sim.js and weights.json
+web/index.html linguist-generated=true

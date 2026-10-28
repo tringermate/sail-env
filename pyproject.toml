@@ -1,0 +1,57 @@
+[project]
+name = "sail_env"
+version = "0.2.0"
+description = "A JAX simulator of J/70 fleet racing for reinforcement learning: ORC polar, racing rules, wind shadow; start and full-race tasks, baselines, pretrained agents, browser version."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Máté Tringer", email = "tringermate@gmail.com" }]
+requires-python = ">=3.11"
+keywords = ["reinforcement-learning", "jax", "sailing", "multi-agent", "simulation", "benchmark"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "jax>=0.4.30",
+    "flax>=0.8",
+    "optax>=0.2",
+    "numpy",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/tringermate/sail-env"
+Repository = "https://github.com/tringermate/sail-env"
+Documentation = "https://github.com/tringermate/sail-env/blob/main/docs/ENVIRONMENT.md"
+Changelog = "https://github.com/tringermate/sail-env/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+wandb = ["wandb>=0.18"]
+
+[project.scripts]
+sail-play = "sail_env.play:main"
+sail-eval = "sail_env.evaluate:main"
+sail-replay = "sail_env.replay:main"
+sail-train = "sail_env.train.run:main"
+sail-export-agent = "sail_env.agents.export:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sail_env"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"sail_env/data" = "sail_env/data"
+"sail_env/pretrained" = "sail_env/pretrained"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,53 @@
+# Phase 3 follow-up: staged rules + uniform sampling over the fixed set, 512 envs
+# Staged rules (as run H): on the line at the gun (0-3 m), cross within 3 s at
+# >= 90% speed, starboard, OCS penalty, height bonus with 10 s tail. Each episode resets to one of
+# 4096 fixed starting situations (5-60 s to the gun, 2 m below the line up to beyond reach), chosen by
+# the sampler below. Success signal for the sampler: good_start_on_line.
+name: solo_staged
+env: solo_start
+wandb: false            # set true (and `pip install wandb`, `wandb login`) for live dashboards
+gif_every: 100         # updates
+env_params:
+  port_penalty: 1.0
+  upwind_bonus: 1.0
+  efficiency_tail_seconds: 10.0
+  gun_distance_max: 3.0
+staged_rules:          # as in run H: easy rules first, tightened to the full rules above
+  easy_until: 0.2
+  full_from: 0.7
+  easy:
+    success_window: 10.0
+    success_speed_frac: 0.0
+    ocs_penalty: 0.0
+    port_penalty: 0.0
+    gun_distance_max: 30.0
+    speed_bonus: 0.02
+curriculum:
+  method: uniform
+  num_configs: 4096
+  history: 100
+  target: 0.5
+  kappa: 1.0
+  temperature: 2.0
+  eps: 1.0e-4
+  success_key: success   # success under the current (staged) rules
+ppo:
+  num_envs: 512
+  num_steps: 32
+  total_timesteps: 20000000
+  lr: 3.0e-4
+  anneal_lr: true
+  update_epochs: 4
+  num_minibatches: 4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  normalize_advantages: true
+  clip_value_loss: true
+  hidden: 64
+  num_seeds: 5
+  updates_per_chunk: 10
+  stagger_steps: 70

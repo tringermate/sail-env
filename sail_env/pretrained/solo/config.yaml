@@ -1,0 +1,114 @@
+name: p3_staged_uniform
+env: solo_start
+wandb: false
+gif_every: 100
+env_params:
+  port_penalty: 1.0
+  upwind_bonus: 1.0
+  efficiency_tail_seconds: 10.0
+  gun_distance_max: 3.0
+staged_rules:
+  easy_until: 0.2
+  full_from: 0.7
+  easy:
+    success_window: 10.0
+    success_speed_frac: 0.0
+    ocs_penalty: 0.0
+    port_penalty: 0.0
+    gun_distance_max: 30.0
+    speed_bonus: 0.02
+curriculum:
+  method: uniform
+  num_configs: 4096
+  history: 100
+  target: 0.5
+  kappa: 1.0
+  temperature: 2.0
+  eps: 0.0001
+  success_key: success
+ppo:
+  num_envs: 512
+  num_steps: 32
+  total_timesteps: 20000000
+  lr: 0.0003
+  anneal_lr: true
+  update_epochs: 4
+  num_minibatches: 4
+  max_grad_norm: 0.5
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  ent_coef: 0.01
+  ent_coef_final: null
+  vf_coef: 0.5
+  normalize_advantages: true
+  clip_value_loss: true
+  hidden: 64
+  stagger_steps: 70
+  num_seeds: 5
+  updates_per_chunk: 10
+tracked_reach_fraction:
+- 0.053693987429142
+- 0.2663401663303375
+- 0.4952486455440521
+- 0.7255430221557617
+- 0.9455111026763916
+- 1.1765758991241455
+seed: 0
+env_params_resolved:
+  dt: 1.0
+  n_substeps: 4
+  t_start: -60.0
+  t_end: 10.0
+  wind_dir: 0.0
+  tws_min: 3.0864
+  tws_max: 8.2304
+  shift_amp_max: 0.0
+  shift_period: 120.0
+  boat_length: 6.9
+  boat_beam: 2.25
+  tau_accel: 4.0
+  tau_decel: 8.0
+  drag_decel: true
+  boat_mass: 1265.0
+  water_drag_k: 37.0
+  windage_cda: 5.0
+  rho_air: 1.225
+  no_go: 0.5235987755982988
+  luff_factor: 0.12
+  max_turn_rate: 0.3490658503988659
+  full_steer_speed: 1.5432
+  min_steer_speed: 0.2572
+  irons_bear_away_rate: 0.08726646259971647
+  tack_speed_loss: 0.0
+  gybe_speed_loss: 0.1
+  fleet_size: 1
+  line_fleet_size: 15
+  line_bias_max: 0.0
+  init_dist_min: 20.0
+  init_dist_max: 120.0
+  init_reach_frac: 0.75
+  init_lateral_max: 100.0
+  init_lateral_speed: 1.5
+  random_start_time: false
+  init_time_to_gun_min: 5.0
+  init_speed_frac_max: 1.0
+  success_window: 3.0
+  success_speed_frac: 0.9
+  strict_success_window: 3.0
+  strict_success_speed_frac: 0.9
+  gun_distance_max: 3.0
+  strict_gun_distance_max: 3.0
+  ocs_penalty: 1.0
+  reward_shaping: 0.0
+  shaping_gamma: 0.99
+  shaping_speed_aware: false
+  speed_bonus: 0.0
+  speed_bonus_from: -10.0
+  speed_bonus_until: 3.0
+  port_penalty: 1.0
+  upwind_bonus: 1.0
+  efficiency_tail_seconds: 10.0
+  starboard_bonus: 0.0
+  starboard_bonus_from: -60.0
+git_commit: 304fbd5

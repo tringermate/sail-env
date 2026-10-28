@@ -1,0 +1,175 @@
+# Bundled weather racer: the full race with weather (race-solo-weather; current capped at 6% of the wind), retrained
+# under the fixed gate rule from the bundled racer (sail-rl run gpu_weather_gate_20261026-162541; 2048 envs, 200M steps per
+# seed). 64 races vs the digital racer: paired difference -28.3 / -27.8 / -25.6 s over 694.5 s (95% CIs below -20 s),
+# faster in 91-97% of races (the digital racer's simple gate rounding is part of the gap).
+name: gpu_weather_gate
+env: race-solo-weather
+wandb: true
+wandb_project: sailstart
+gif_every: 150
+start_bank:
+  num: 4096
+  policy: fleet
+  sampler: uniform
+  seed: 4321
+env_params:
+  race_legs: 4
+  course_beat_length: 400.0
+  gate_offset: 60.0
+  race_time_cost: 0.0016667
+  race_finish_reward: 1.0
+  race_shaping: 0.1
+  shaping_gamma: 1.0
+  current_max_frac: 0.06
+ppo:
+  num_envs: 2048
+  num_steps: 64
+  total_timesteps: 200000000
+  lr: 0.0003
+  anneal_lr: true
+  update_epochs: 4
+  num_minibatches: 32
+  max_grad_norm: 0.5
+  gamma: 0.999
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  ent_coef: 0.01
+  ent_coef_final: 0.002
+  vf_coef: 0.5
+  kick_coef: 0.0
+  kick_until: 0.3
+  normalize_advantages: true
+  clip_value_loss: true
+  hidden: 128
+  stagger_steps: 700
+  num_seeds: 3
+  updates_per_chunk: 10
+init_from: runs/train/gpu_racer_gate_20261026-154813
+start_bank_started_fraction: 0.95654296875
+seed: 0
+env_params_resolved:
+  dt: 1.0
+  n_substeps: 4
+  t_start: -90.0
+  t_end: 1200.0
+  wind_dir: 0.0
+  tws_min: 3.0864
+  tws_max: 8.2304
+  shift_amp_max: 0.0873
+  shift_period: 120.0
+  weather_shifts: true
+  weather_pressure: true
+  water_current: true
+  waves: true
+  observe_weather: true
+  weather_advection: 0.8
+  drift_max: 0.00017453292519943296
+  random_shift_std: 0.06981317007977318
+  random_shift_period_min: 60.0
+  random_shift_period_max: 600.0
+  n_shift_modes: 4
+  bend_max: 0.03490658503988659
+  pressure_grad_max: 0.04
+  n_puffs: 48
+  puff_cell_length: 3000.0
+  puff_cell_width: 1000.0
+  puff_amp_max: 0.25
+  lull_amp_max: 0.2
+  puff_radius_min: 40.0
+  puff_radius_max: 120.0
+  puff_shift_max: 0.08726646259971647
+  tws_floor_frac: 0.3
+  current_max: 0.5144
+  current_max_frac: 0.06
+  wave_height_max: 0.8
+  wave_dir_spread: 0.3490658503988659
+  wave_upwind_loss: 0.1
+  wave_downwind_gain: 0.03
+  wave_manoeuvre_loss: 0.1
+  boat_length: 6.9
+  boat_beam: 2.25
+  tau_accel: 4.0
+  tau_decel: 8.0
+  drag_decel: true
+  boat_mass: 1265.0
+  water_drag_k: 37.0
+  windage_cda: 5.0
+  rho_air: 1.225
+  no_go: 0.5235987755982988
+  luff_factor: 0.12
+  max_turn_rate: 0.3490658503988659
+  full_steer_speed: 1.5432
+  min_steer_speed: 0.2572
+  irons_bear_away_rate: 0.08726646259971647
+  tack_speed_loss: 0.0
+  gybe_speed_loss: 0.1
+  fleet_size: 1
+  line_fleet_size: 5
+  line_length_factor: 1.6
+  shadow_length_bl: 6.0
+  shadow_half_angle: 0.20943951023931956
+  shadow_min_factor: 0.75
+  shadow_apparent: true
+  penalty_seconds: 15.0
+  penalty_turn: true
+  penalty_turns: 1.0
+  penalty_turn_rate: 0.5236
+  penalty_clear_distance: 13.8
+  penalty_clear_timeout: 10.0
+  rrs16: false
+  rrs16_turn: 0.17453292519943295
+  foul_penalty: 1.0
+  contact_cost: 2.0
+  contact_cost_row: 0.5
+  pin_radius: 1.0
+  committee_radius: 4.0
+  rank_reward: 0.0
+  course_beat_length: 400.0
+  gate_offset: 60.0
+  gate_width_bl: 8.0
+  course_mark_radius: 1.0
+  zone_bl: 3.0
+  race_legs: 4
+  start_reward_weight: 0.0
+  race_finish_reward: 1.0
+  race_rank_reward: 2.0
+  team_size: 0
+  race_progress_reward: 0.0
+  race_time_cost: 0.0016667
+  race_shaping: 0.1
+  line_bias_max: 0.1745
+  init_dist_min: 20.0
+  init_dist_max: 120.0
+  init_reach_frac: 0.75
+  init_lateral_max: 100.0
+  init_lateral_speed: 1.5
+  random_start_time: false
+  init_time_to_gun_min: 5.0
+  init_speed_frac_max: 1.0
+  success_window: 3.0
+  success_speed_frac: 0.9
+  strict_success_window: 3.0
+  strict_success_speed_frac: 0.9
+  gun_distance_max: 3.0
+  strict_gun_distance_max: 3.0
+  per_episode_rules: false
+  observe_rules: false
+  easy_success_window: 10.0
+  easy_success_speed_frac: 0.0
+  easy_gun_distance_max: 30.0
+  easy_ocs_penalty: 0.0
+  easy_port_penalty: 0.0
+  easy_speed_bonus: 0.02
+  ocs_penalty: 0.0
+  reward_shaping: 0.0
+  shaping_gamma: 1.0
+  shaping_speed_aware: false
+  speed_bonus: 0.0
+  speed_bonus_from: -10.0
+  speed_bonus_until: 3.0
+  port_penalty: 0.0
+  upwind_bonus: 0.0
+  efficiency_tail_seconds: 10.0
+  starboard_bonus: 0.0
+  starboard_bonus_from: -60.0
+git_commit: b9d8736

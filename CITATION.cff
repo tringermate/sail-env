@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "sail-env: A JAX Simulator of J/70 Fleet Racing for Reinforcement Learning"
+abstract: >-
+  sail_env simulates one-design keelboat races (J/70) from the start sequence to the finish: an ORC
+  polar with speed dynamics, the racing rules that govern interaction between boats (right of way,
+  contact, mark-room, penalty turns), wind shadow, oscillating shifts and line bias. It provides solo
+  and 5-boat start and race tasks with a functional, jit/vmap-compatible JAX API, baselines, bundled
+  PPO policies, a reference PPO implementation and a browser version verified against the simulator.
+authors:
+  - given-names: "Máté"
+    family-names: "Tringer"
+    alias: "tringermate"
+repository-code: "https://github.com/tringermate/sail-env"
+version: 0.2.0
+date-released: 2026-10-27
+license: MIT
+keywords:
+  - reinforcement learning
+  - multi-agent reinforcement learning
+  - JAX
+  - simulation
+  - sailing
+  - benchmark

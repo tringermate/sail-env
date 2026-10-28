@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Sail J/70 fleet starts and windward-leeward races in the browser against trained RL boats, digital sailors or your own agent. Built on the open-source sail_env simulator.">
+<title>J/70 Regatta · sail_env</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Instrument+Sans:wght@400;500;600&family=Azeret+Mono:wght@400;600&display=swap">
+<style>
+/* reset */
+body { margin: 0; } img { max-width: 100%; } [hidden] { display: none !important; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* Layout: a chart table. The water chart fills the stage; the instruments and helm sit in a console column
+   (below the chart on a phone). Colours: chart water, signal-flag orange for you, buoy yellow/orange. */
+:root {
+  --bg: #e9f0ef;
+  --surface: #fbfdfc;
+  --surface-2: #f1f6f5;
+  --ink: #0f2329;
+  --muted: #587077;
+  --rule: #cfdcdc;
+  --water: #d4e7ea;
+  --water-grid: rgba(15, 35, 41, 0.07);
+  --streak: rgba(15, 35, 41, 0.12);
+  --accent: #df4f27;
+  --accent-ink: #ffffff;
+  --buoy-w: #f0bd22;
+  --buoy: #ec7a1e;
+  --committee: #57666b;
+  --good: #23824f;
+  --bad: #c3322b;
+  --warn: #b97c0b;
+  --shadow-cone: rgba(15, 35, 41, 0.045);
+  --boat-1: #2c69ad;
+  --boat-2: #7556b3;
+  --boat-3: #17807f;
+  --boat-4: #8b6234;
+  --display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "Azeret Mono", ui-monospace, "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1417; --surface: #122027; --surface-2: #0f1b21; --ink: #e2edef; --muted: #8ea5aa; --rule: #233840;
+    --water: #0f2c35; --water-grid: rgba(226, 237, 239, 0.06); --streak: rgba(226, 237, 239, 0.12);
+    --accent: #ff7247; --accent-ink: #1a0b05; --buoy-w: #f5c93c; --buoy: #ff8a33; --committee: #9fb0b5;
+    --good: #5bcb8b; --bad: #ff6a5f; --warn: #f0b440; --shadow-cone: rgba(226, 237, 239, 0.04);
+    --boat-1: #6aa8ef; --boat-2: #a98bf0; --boat-3: #45c2c0; --boat-4: #d39b5c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1417; --surface: #122027; --surface-2: #0f1b21; --ink: #e2edef; --muted: #8ea5aa; --rule: #233840;
+  --water: #0f2c35; --water-grid: rgba(226, 237, 239, 0.06); --streak: rgba(226, 237, 239, 0.12);
+  --accent: #ff7247; --accent-ink: #1a0b05; --buoy-w: #f5c93c; --buoy: #ff8a33; --committee: #9fb0b5;
+  --good: #5bcb8b; --bad: #ff6a5f; --warn: #f0b440; --shadow-cone: rgba(226, 237, 239, 0.04);
+  --boat-1: #6aa8ef; --boat-2: #a98bf0; --boat-3: #45c2c0; --boat-4: #d39b5c; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45; }
+* { box-sizing: border-box; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app {
+  height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px 16px; padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 30px; letter-spacing: 0.01em; line-height: 1; text-wrap: balance; }
+.brand span { color: var(--muted); font-size: 12px; letter-spacing: 0.04em; }
+.modes { display: flex; gap: 4px; padding: 3px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 8px; flex-wrap: wrap; }
+.modes button { border: 0; background: transparent; padding: 6px 12px; border-radius: 6px; font-weight: 500; color: var(--muted); }
+.modes button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.head-tools { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chip-btn { border: 1px solid var(--rule); background: var(--surface); padding: 5px 10px; border-radius: 6px; font-size: 13px; }
+
+.stage { position: relative; min-height: 0; border-radius: 10px; overflow: hidden; background: var(--water); border: 1px solid var(--rule); }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; pointer-events: none; }
+.card {
+  pointer-events: auto; max-width: 460px; width: 100%; background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 10px; padding: 20px 22px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18); display: grid; gap: 12px;
+  max-height: 100%; overflow: auto;
+}
+.card h2 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); max-width: 62ch; }
+.card .eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 7px; padding: 9px 16px; font-weight: 600; }
+.btn-ghost { background: transparent; border: 1px solid var(--rule); border-radius: 7px; padding: 8px 14px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; }
+.checks .v { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.ok { color: var(--good); font-weight: 700; } .no { color: var(--bad); font-weight: 700; }
+.angles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.angles div { border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); display: grid; gap: 1px; }
+.angles span { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.angles b { font-family: var(--mono); font-size: 26px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.angles small { font-size: 12px; color: var(--muted); }
+.results { width: 100%; border-collapse: collapse; font-size: 13px; }
+.results td, .results th { padding: 4px 6px; border-bottom: 1px solid var(--rule); text-align: left; }
+.results td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.results tr.me td { font-weight: 600; color: var(--accent); }
+.keys { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 13px; }
+kbd { font-family: var(--mono); font-size: 11px; background: var(--surface-2); border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+.signal { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-family: var(--display); font-weight: 800; font-size: 28px;
+  letter-spacing: 0.04em; padding: 4px 16px; border-radius: 6px; background: var(--surface); border: 1px solid var(--rule); opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+.signal.show { opacity: 1; }
+
+.console { min-height: 0; overflow: auto; display: grid; gap: 12px; align-content: start; padding-bottom: 8px; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 10px; }
+.panel h3 { margin: 0; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.clock { font-family: var(--mono); font-weight: 600; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.clock small { font-size: 13px; color: var(--muted); font-weight: 400; letter-spacing: 0; margin-left: 6px; }
+.inst { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.inst div { display: grid; gap: 2px; min-width: 0; }
+.inst b { font-family: var(--mono); font-weight: 600; font-size: 22px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.inst span { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
+.status { display: flex; gap: 6px; flex-wrap: wrap; min-height: 26px; }
+.pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; border: 1px solid currentColor; }
+.pill.good { color: var(--good); } .pill.bad { color: var(--bad); } .pill.warn { color: var(--warn); } .pill.info { color: var(--muted); }
+.helm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.helm button { border: 1px solid var(--rule); background: var(--surface-2); border-radius: 8px; padding: 10px 6px; display: grid; gap: 1px; justify-items: center; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.helm button b { font-size: 14px; font-weight: 600; }
+.helm button span { font-size: 11px; color: var(--muted); }
+.helm button.wide { grid-column: span 1; }
+.helm button:active, .helm button.flash { border-color: var(--accent); background: var(--surface); }
+.queued { font-size: 12px; color: var(--muted); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row label { font-size: 12px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 7px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 5px 10px; font-size: 13px; font-family: var(--mono); }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+select { border: 1px solid var(--rule); background: var(--surface); border-radius: 6px; padding: 5px 8px; }
+.note { font-size: 12px; color: var(--muted); margin: 0; }
+.note a { color: inherit; }
+
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 56vh auto; height: auto; min-height: 100%; }
+  .console { overflow: visible; }
+  .clock { font-size: 34px; }
+  .brand h1 { font-size: 26px; }
+  .head-tools { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .signal { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><h1>J/70 Regatta</h1><span>sail_env simulator</span></div>
+    <div class="modes" role="group" aria-label="What to sail">
+      <button id="m-fleet" data-mode="fleet" aria-pressed="true">Fleet start</button>
+      <button id="m-solo" data-mode="solo" aria-pressed="false">Solo start</button>
+      <button id="m-race" data-mode="race" aria-pressed="false">Race</button>
+      <button id="m-race-solo" data-mode="race-solo" aria-pressed="false">Solo race</button>
+    </div>
+    <div class="head-tools">
+      <button class="chip-btn" id="sound" aria-pressed="true">Sound on</button>
+      <button class="chip-btn" id="restart">Restart</button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Race area chart: your boat is orange"></canvas>
+    <div class="signal" id="signal"></div>
+    <div class="overlay" id="overlay"><div class="card" id="card"></div></div>
+  </div>
+
+  <aside class="console">
+    <section class="panel" aria-label="Clock and instruments">
+      <div class="clock" id="clock">T−1:30</div>
+      <div class="inst">
+        <div><b id="i-speed">0.0</b><span>BOAT SPEED kn</span></div>
+        <div><b id="i-target">0.0</b><span>TARGET kn</span></div>
+        <div><b id="i-twa">0°</b><span id="i-tack">TWA</span></div>
+        <div><b id="i-tws">0.0</b><span>WIND kn</span></div>
+        <div><b id="i-twd">000°</b><span>WIND FROM</span></div>
+        <div><b id="i-hdg">000°</b><span>HEADING</span></div>
+      </div>
+      <div class="status" id="status"></div>
+    </section>
+
+    <section class="panel" aria-label="Helm">
+      <h3>Helm</h3>
+      <div class="helm">
+        <button data-ctl="left" id="b-left"><b>◀ Turn left</b><span>← or A</span></button>
+        <button data-ctl="right" id="b-right"><b>Turn right ▶</b><span>→ or D</span></button>
+        <button data-ctl="left10" id="b-left10"><b>◀ Left 10°</b><span>Shift + ←</span></button>
+        <button data-ctl="right10" id="b-right10"><b>Right 10° ▶</b><span>Shift + →</span></button>
+        <button data-ctl="tack" id="b-tack"><b>Tack / gybe</b><span>Space or T</span></button>
+        <button data-ctl="luff" id="b-luff"><b>Luff</b><span>L or E · hold to stop</span></button>
+      </div>
+      <div class="queued" id="queued">Tap to turn 1°, hold to keep turning. No input holds the course.</div>
+    </section>
+
+    <section class="panel" aria-label="Settings">
+      <div class="row"><label for="speedseg">Sim speed</label>
+        <div class="seg" id="speedseg" role="group" aria-label="Sim speed">
+          <button data-speed="1" aria-pressed="true">1×</button><button data-speed="2" aria-pressed="false">2×</button>
+          <button data-speed="4" aria-pressed="false">4×</button><button data-speed="8" aria-pressed="false">8×</button>
+        </div>
+        <button class="chip-btn" id="pause">Pause</button>
+        <button class="chip-btn" id="skip" hidden>Skip to results</button>
+      </div>
+      <div class="row" id="opp-row"><label for="opp">Opponents</label>
+        <select id="opp"><option value="rl">Trained RL boats</option><option value="digital">Digital sailors</option><option value="custom">Your agent…</option></select>
+        <button class="chip-btn" id="agent-load" hidden>Load .json</button>
+        <input type="file" id="agent-file" accept=".json,application/json" hidden>
+      </div>
+      <p class="note" id="agent-note" hidden></p>
+      <div class="row" id="view-row"><label for="view">View</label>
+        <select id="view"><option value="follow">Follow my boat</option><option value="course" id="view-whole">Whole course</option></select>
+        <button class="chip-btn" id="map-btn" aria-pressed="true" title="Map of the whole area in the corner (M)">Map</button>
+      </div>
+      <p class="note">V switches the view, M shows or hides the map. Click the map for the whole view.</p>
+      <div class="row"><label for="seed">Start no.</label>
+        <input id="seed" inputmode="numeric" style="width:90px;border:1px solid var(--rule);border-radius:6px;padding:4px 8px;background:var(--surface);font-family:var(--mono)">
+        <button class="chip-btn" id="seed-go">Sail this start</button>
+      </div>
+      <p class="note">Same start number, same wind and starting positions: compare with friends.</p>
+    </section>
+
+    <section class="panel" aria-label="Your record">
+      <h3>Your record on this device</h3>
+      <div id="record" class="note">No results yet.</div>
+      <p class="note">Physics, rules and opponents are the open-source <a href="https://github.com/tringermate/sail-env" target="_blank" rel="noopener">sail_env</a> simulator: J/70 ORC polar, racing rules, wind shadow, shifts and line bias.</p>
+    </section>
+  </aside>
+</div>
+
+<script>
+/*SIM*/
+</script>
+<script>
+const WEIGHTS = /*WEIGHTS*/;
+(() => {
+"use strict";
+const S = SailSim;
+const { HOLD, TACK, LUFF, KNOT, DEG } = S;
+const ACTION_NAMES = ["Hold course", "Head up 5°", "Bear away 5°", "Head up 15°", "Bear away 15°", "Tack / gybe", "Luff"];
+const MODE_INFO = {
+  fleet: { title: "Fleet start", text: "Five J/70s, a 55 m line, 1:30 to the gun. Be on the line at full speed on starboard when the gun goes, in clear air, without fouling anyone. The wind shifts and the line may be biased." },
+  solo: { title: "Solo start", text: "You alone, a 130 m line, 1:00 to the gun, steady wind. Learn the timing: bow 0–3 m below the line at the gun, then cross at full speed on starboard." },
+  race: { title: "Race", text: "The fleet start, then two laps: beat to the windward mark (leave it to port), run through the leeward gate, beat again, run to the finish across the start line. Four opponents: trained RL racers, digital racers or your own agent (Opponents, under the course)." },
+  "race-solo": { title: "Solo race", text: "The whole course alone: start, two laps windward-leeward with a leeward gate, finish downwind across the start line. Sail the laylines and the VMG angles." },
+};
+const $ = (q) => document.querySelector(q);
+const cv = $("#cv"), ctx = cv.getContext("2d");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------------------------------------------------------------- state
+let mode = "fleet", opp = "rl", speedMult = 1, view = "follow", soundOn = true, viewMode = null;
+// An uploaded agent (sail_env-agent JSON: python -m sail_env.agents.export <run> -o agent.json), kept on this device.
+let customAgent = (() => { try { return JSON.parse(localStorage.getItem("j70-agent") || "null"); } catch { return null; } })();
+let showMap = (() => { try { return localStorage.getItem("j70-map") !== "off"; } catch { return true; } })();
+let mapBox = null; // where the map was drawn last frame (for clicks): { x, y, w, h }
+let sim, s, prev, seed, running = false, paused = false, acc = 0, pending = HOLD, lastAction = HOLD, ended = false;
+let trails = [], signalTimer = 0, cam = null, streaks = [], recordSaved = false, finishedHorn = false, skip = false;
+// Helm: the player steers by moving the target heading directly, finer than the simulator's 5°/15° actions.
+// steerAcc collects degrees of turn to the right (negative: left, both seen from the boat) until the next
+// step applies them. A turn that would carry the bow past head to wind (or past dead downwind) becomes a
+// tack (or gybe), as if Tack had been pressed.
+const HOLD_DELAY = 180, HOLD_RATE = 15; // ms before a press counts as held; °/s of sim time while held
+const held = { left: 0, right: 0, up: 0, down: 0, luff: 0 }; // performance.now() when pressed, 0 when up
+let steerAcc = 0, lastSteer = 0;
+
+function mulberry32(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const store = { get() { try { return JSON.parse(localStorage.getItem("j70-regatta") || "{}"); } catch { return {}; } },
+  set(v) { try { localStorage.setItem("j70-regatta", JSON.stringify(v)); } catch {} } };
+
+function newRace(newSeed) {
+  seed = newSeed ?? Math.floor(Math.random() * 90000) + 10000;
+  $("#seed").value = seed;
+  const modeSeed = seed * 7 + ["fleet", "solo", "race", "race-solo"].indexOf(mode);
+  sim = new S.Sim(mode);
+  s = sim.reset(mulberry32(modeSeed));
+  prev = sim.clone(s);
+  trails = s.boats.map((b) => [[b.x, b.y]]);
+  running = false; paused = false; acc = 0; pending = HOLD; lastAction = HOLD; ended = false; recordSaved = false; finishedHorn = false; skip = false;
+  steerAcc = 0; lastSteer = 0;
+  cam = null;
+  $("#opp-row").hidden = !(mode === "fleet" || mode === "race");
+  showAgentNote();
+  if (viewMode !== mode) { view = sim.p.race ? "follow" : "course"; viewMode = mode; } // each mode starts in its usual view
+  $("#view-whole").textContent = sim.p.race ? "Whole course" : "Whole start area";
+  $("#view").value = view;
+  $("#skip").hidden = true;
+  if (sim.p.race && speedMult < 4) setSpeed(4);
+  if (!sim.p.race && speedMult > 2) setSpeed(1);
+  updateHud();
+}
+
+function startRunning() {
+  ensureAudio();
+  running = true; paused = false; lastSim = performance.now();
+  $("#overlay").hidden = true;
+  $("#pause").textContent = "Pause";
+  if (s.t === -60) signal("1 minute", "horn"); // the solo sequence starts at the 1-minute signal
+}
+
+// ---------------------------------------------------------------- cards
+function showIntro() {
+  const info = MODE_INFO[mode], tws = s.wind.tws, [beat, run] = S.angles(sim.P, tws);
+  $("#card").innerHTML = `
+    <div class="eyebrow">${sim.p.n > 1 ? sim.p.n + " boats" : "1 boat"} · start no. ${seed}</div>
+    <h2>${info.title}</h2>
+    <p>${info.text}</p>
+    <div class="angles">
+      <div><span>Upwind</span><b>${Math.round(beat / DEG)}°</b><small>to the wind · ${(S.polarSpeed(sim.P, beat, tws) / KNOT).toFixed(1)} kn</small></div>
+      <div><span>Downwind</span><b>${Math.round(run / DEG)}°</b><small>to the wind · ${(S.polarSpeed(sim.P, run, tws) / KNOT).toFixed(1)} kn</small></div>
+    </div>
+    <p>The best true wind angles in today's ${(tws / KNOT).toFixed(1)} kn: they make the most ground towards the mark upwind and away from it downwind. Steer by the TWA instrument. Closer than ${Math.round(sim.p.noGo / DEG)}° to the wind the sails stop working.</p>
+    <div class="keys">
+      <kbd>← →</kbd><span>turn the bow left or right: tap for 1°, hold to keep turning (Shift: 10°). Steer through the wind and you tack; through dead downwind and you gybe</span>
+      <kbd>↑ ↓</kbd><span>the same, as head up / bear away</span>
+      <kbd>Space</kbd><span>tack or gybe</span>
+      <kbd>L</kbd><span>luff: ease the sails to slow down. Hold it and the boat drifts to a stop</span>
+      <kbd>P</kbd><span>pause</span>
+    </div>
+    <p>Your boat is orange. Wind blows from the top of the chart. Touch a boat or a mark and you owe a 360° turn${sim.p.race ? ", taken once you are clear" : ""}. Over the line at the gun: dip back below it and start again.</p>
+    <div class="card-actions"><button class="btn-primary" id="go">Start the sequence</button></div>`;
+  $("#overlay").hidden = false;
+  $("#go").onclick = startRunning;
+}
+
+const fmtClock = (t) => { const a = Math.abs(t), m = Math.floor(a / 60), sec = Math.floor(a % 60); return `${m}:${String(sec).padStart(2, "0")}`; };
+const tick = (ok) => `<span class="${ok ? "ok" : "no"}">${ok ? "✓" : "✗"}</span>`;
+
+function showResult() {
+  const p = sim.p, me = s.boats[0], info = s.info || {};
+  const rec = store.get(), key = mode; rec[key] = rec[key] || { plays: 0, good: 0, best: null, wins: 0 };
+  let html = "";
+  if (!p.race) {
+    const good = !!(info.good && info.good[0]);
+    const onLine = me.gunBelow >= 0 && me.gunBelow <= 3 && me.gunInside;
+    const inWin = me.started && me.startTime >= 0 && me.startTime <= 3;
+    const fast = me.started && me.ssr >= 0.9;
+    const rank = info.rank ? info.rank[0] + 1 : 1;
+    const gunTxt = Number.isNaN(me.gunBelow) ? "–" : me.gunBelow >= 0 ? `${me.gunBelow.toFixed(1)} m below${me.gunInside ? "" : ", outside the ends"}` : `${(-me.gunBelow).toFixed(1)} m over`;
+    html = `<div class="eyebrow">${MODE_INFO[mode].title} · start no. ${seed}</div>
+      <h2>${good ? "Good start" : me.started ? "Started, not a good start" : me.ocs ? "Still OCS" : "Did not start"}</h2>
+      <ul class="checks">
+        <li>${tick(onLine)}<span>Bow 0–3 m below the line at the gun</span><span class="v">${gunTxt}</span></li>
+        <li>${tick(inWin)}<span>Crossed within 3 s of the gun</span><span class="v">${me.started ? "T+" + me.startTime.toFixed(1) + " s" : me.ocs ? "OCS" : "–"}</span></li>
+        <li>${tick(fast)}<span>At ≥ 90% of target speed</span><span class="v">${me.started ? Math.round(100 * me.ssr) + "%" : "–"}</span></li>
+        <li>${tick(me.started && me.sos)}<span>On starboard tack</span><span class="v">${me.started ? (me.sos ? "starboard" : "port") : "–"}</span></li>
+        ${p.n > 1 ? `<li>${tick(info.clearAir && info.clearAir[0])}<span>Clear air at T+10</span><span class="v"></span></li>
+        <li>${tick(!(info.owed && info.owed[0]))}<span>No penalty owed</span><span class="v">${s.fouls[0]} penalt${s.fouls[0] === 1 ? "y" : "ies"}</span></li>` : ""}
+      </ul>
+      ${p.n > 1 ? `<p>Ranked by height upwind at T+10 among legal starters: <b>${ordinal(rank)} of ${p.n}</b>.</p>` : ""}`;
+    if (!recordSaved) { rec[key].plays++; if (good) rec[key].good++; if (p.n > 1 && rank === 1) rec[key].wins++; }
+  } else {
+    const order = s.boats.map((b, i) => i).sort((a, b) => info.rank[a] - info.rank[b]);
+    const myPlace = info.rank[0] + 1, fin = info.finished[0];
+    html = `<div class="eyebrow">${MODE_INFO[mode].title} · start no. ${seed}</div>
+      <h2>${fin ? (p.n > 1 ? `${ordinal(myPlace)} of ${p.n}` : "Finished") + ` in ${fmtClock(s.finishTime[0])}` : `Did not finish: ${Math.min(s.leg[0], 4)} of 4 legs`}</h2>
+      <table class="results"><thead><tr><th>Place</th><th>Boat</th><th class="n">Time</th><th class="n">Penalties</th></tr></thead><tbody>
+      ${order.map((i) => `<tr class="${i === 0 ? "me" : ""}"><td>${info.finished[i] ? ordinal(info.rank[i] + 1) : "DNF"}</td><td>${i === 0 ? "You" : oppName() + " " + i}</td>
+        <td class="n">${info.finished[i] ? fmtClock(s.finishTime[i]) : S.LEG_NAMES[Math.min(s.leg[i], 4)]}</td><td class="n">${s.fouls[i]}</td></tr>`).join("")}
+      </tbody></table>
+      <p>Contacts: ${s.contacts[0]} · mark touches: ${s.markHits[0]}. Time limit T+20:00.</p>`;
+    if (!recordSaved) { rec[key].plays++; if (fin) { rec[key].good++; if (rec[key].best == null || s.finishTime[0] < rec[key].best) rec[key].best = s.finishTime[0]; if (p.n > 1 && myPlace === 1) rec[key].wins++; } }
+  }
+  if (!recordSaved) { store.set(rec); recordSaved = true; renderRecord(); }
+  html += `<div class="card-actions"><button class="btn-primary" id="again">Sail a new start</button><button class="btn-ghost" id="same">Same start again</button></div>`;
+  $("#card").innerHTML = html;
+  $("#overlay").hidden = false;
+  $("#again").onclick = () => { newRace(); startRunning(); };
+  $("#same").onclick = () => { newRace(seed); startRunning(); };
+}
+const ordinal = (k) => { const n = Math.round(k * 2) / 2; if (n % 1) return n.toFixed(1); const s2 = ["th", "st", "nd", "rd"], v = n % 100; return n + (s2[(v - 20) % 10] || s2[v] || s2[0]); };
+
+function renderRecord() {
+  const rec = store.get(), rows = [];
+  for (const m of ["fleet", "solo", "race", "race-solo"]) {
+    const r = rec[m]; if (!r || !r.plays) continue;
+    if (m.startsWith("race")) rows.push(`<b>${MODE_INFO[m].title}</b>: ${r.good}/${r.plays} finished${r.best != null ? `, best ${fmtClock(r.best)}` : ""}${m === "race" ? `, ${r.wins} win${r.wins === 1 ? "" : "s"}` : ""}`);
+    else rows.push(`<b>${MODE_INFO[m].title}</b>: ${r.good} good of ${r.plays}${m === "fleet" ? `, ${r.wins} time${r.wins === 1 ? "" : "s"} first` : ""}`);
+  }
+  $("#record").innerHTML = rows.length ? rows.join("<br>") : "No results yet.";
+}
+
+// ---------------------------------------------------------------- simulation tick
+function stepOnce() {
+  const actions = S.opponentActions(sim, s, effectiveOpp(), { fleet: WEIGHTS.fleet, racer: WEIGHTS.racer, custom: customAgent && customAgent.layers });
+  const me = s.boats[0];
+  let a = pending;
+  if (a === HOLD && held.luff) a = LUFF;
+  lastSteer = 0;
+  const wasMan = me.man;
+  let tacked = false; // steered through the wind: turnBy has set up the tack
+  if (a !== TACK && steerAcc) {
+    const r = turnBy(me, steerAcc); lastSteer = r.applied;
+    if (r.cross === "gybe") a = TACK; // the simulator's gybe (mirror across dead downwind, with its speed loss)
+    if (r.cross === "tack") { a = HOLD; tacked = true; }
+  }
+  me.fullLuff = a === LUFF && held.luff > 0;
+  actions[0] = a;
+  lastAction = tacked ? TACK : a; pending = HOLD; steerAcc = 0;
+  const t0 = s.t, wasOcs = s.boats[0].ocs;
+  if ((a === TACK || tacked) && !wasMan && me.v < sim.p.fullSteer) {
+    const [wd0] = S.windAt(s.wind, s.t);
+    if (Math.abs(S.stwa(me.h, wd0)) < Math.PI / 2) signal("Too slow to tack: build speed first", null, true);
+  }
+  prev = sim.clone(s);
+  s = sim.step(s, actions);
+  // The bow crossed head to wind without a tack (steered up to the wind, carried over by momentum or a
+  // shift): go over as if it had just tacked and settle close-hauled on the new tack.
+  const me1 = s.boats[0];
+  if (!tacked && a !== TACK && !wasMan && !me1.man && !s.penTurning[0] && s.penLeft[0] <= 0) {
+    const [wdA] = S.windAt(prev.wind, prev.t), [wdB, twsB] = S.windAt(s.wind, s.t);
+    const twaA = S.stwa(prev.boats[0].h, wdA), twaB = S.stwa(me1.h, wdB);
+    if (Math.sign(twaA) !== Math.sign(twaB) && twaB !== 0 && Math.abs(twaA) < Math.PI / 2 && Math.abs(twaB) < Math.PI / 2) {
+      me1.th = S.wrap(wdB - Math.sign(twaB) * S.angles(sim.P, twsB)[0]);
+      me1.man = true;
+      lastAction = TACK;
+    }
+  }
+  s.boats.forEach((b, i) => { if (b.x < S.PARK_X / 2) { trails[i].push([b.x, b.y]); if (trails[i].length > 900) trails[i].shift(); } });
+  // signals
+  if (t0 < -60 && s.t >= -60) signal("1 minute", "horn");
+  if (t0 < 0 && s.t >= 0) { const over = s.boats[0].ocs; signal(over ? "OCS · individual recall" : "Gun", "horn", over); if (over) setTimeout(() => beep(880, 0.25), 450); }
+  if (wasOcs && !s.boats[0].ocs && s.t > 0) signal("Clear: start again", null);
+  if (sim.p.race && s.leg[0] >= S.N_LEGS && !finishedHorn) { finishedHorn = true; signal("Finished", "horn"); }
+  if (s.lastPenalised && s.lastPenalised[0]) signal("Contact: 360° turn", null, true);
+  if (s.lastRounded && s.lastRounded[0] && s.leg[0] < S.N_LEGS) signal(["", "Mark rounded", "Through the gate", "Mark rounded"][s.leg[0]] || "", null);
+  if (s.done) { ended = true; running = false; acc = 0; setTimeout(showResult, 500); }
+}
+
+// ---------------------------------------------------------------- HUD
+function updateHud() {
+  if (!sim) return;
+  const p = sim.p, b = s.boats[0], [wd, tws] = S.windAt(s.wind, s.t), twa = S.stwa(b.h, wd);
+  const t = s.t;
+  $("#clock").innerHTML = (t < 0 ? "T−" : "T+") + fmtClock(t) + (p.race && t >= 0 ? `<small>limit 20:00</small>` : t >= 0 ? `<small>ends T+0:10</small>` : "");
+  $("#i-speed").textContent = (b.v / KNOT).toFixed(1);
+  $("#i-target").textContent = (S.polarSpeed(sim.P, twa, tws) / KNOT).toFixed(1);
+  $("#i-twa").textContent = Math.round(Math.abs(twa / DEG)) + "°";
+  $("#i-tack").textContent = twa >= 0 ? "TWA STARBOARD" : "TWA PORT";
+  $("#i-tws").textContent = (tws / KNOT).toFixed(1);
+  $("#i-twd").textContent = String(Math.round(((wd / DEG) % 360 + 360) % 360) % 360).padStart(3, "0") + "°";
+  $("#i-hdg").textContent = String(Math.round(((b.h / DEG) % 360 + 360) % 360) % 360).padStart(3, "0") + "°";
+  const pills = [];
+  if (b.ocs) pills.push(`<span class="pill bad">OCS: dip below the line</span>`);
+  else if (b.started) pills.push(`<span class="pill good">Started T+${b.startTime.toFixed(1)}</span>`);
+  if (s.penLeft[0] > 0) pills.push(`<span class="pill warn">${s.penTurning[0] || p.clearDist <= 0 ? "Turning your 360°" : "Penalty: get clear, then 360°"}</span>`);
+  if (p.race && b.started) {
+    const leg = Math.min(s.leg[0], 4);
+    if (leg < 4) {
+      const k = sim.course(s), tgt = leg === 1 ? k.g : leg === 3 ? k.c : k.w;
+      const d = Math.hypot(tgt[0] - b.x, tgt[1] - b.y), brg = ((Math.atan2(tgt[0] - b.x, tgt[1] - b.y) / DEG) + 360) % 360;
+      const ahead = s.leg.filter((l, i) => i > 0 && l > leg).length;
+      pills.push(`<span class="pill info">${S.LEG_NAMES[leg]} · ${leg === 1 ? "gate" : leg === 3 ? "finish" : "mark"} ${Math.round(d)} m at ${String(Math.round(brg) % 360).padStart(3, "0")}°</span>`);
+      if (p.n > 1) pills.push(`<span class="pill info">${ahead} ahead on the course</span>`);
+    } else pills.push(`<span class="pill good">Finished ${fmtClock(s.finishTime[0])}</span>`);
+  }
+  if (b.man) pills.push(`<span class="pill info">${Math.abs(twa) > Math.PI / 2 ? "gybing" : "tacking"}</span>`);
+  else if (b.v < p.minSteer && Math.abs(twa) < S.angles(sim.P, tws)[0] && !(p.race && s.leg[0] >= S.N_LEGS) && s.penLeft[0] <= 0
+           && !(lastAction === LUFF && held.luff))
+    pills.push(`<span class="pill warn">In irons: bear away to get going</span>`);
+  $("#skip").hidden = !(p.race && s.leg[0] >= S.N_LEGS && running && !ended);
+  if (paused) pills.push(`<span class="pill info">Paused</span>`);
+  $("#status").innerHTML = pills.join("");
+  $("#queued").textContent = !running && !paused ? "Tap to turn 1°, hold to keep turning. No input holds the course."
+    : pending !== HOLD || steerAcc ? `Next: ${helmText(pending, steerAcc)}` : `Last: ${helmText(lastAction, lastSteer)}`;
+}
+function helmText(a, deg) {
+  const turn = Math.round(Math.abs(deg)) ? `turn ${deg > 0 ? "right" : "left"} ${Math.round(Math.abs(deg))}°` : "";
+  if (a === HOLD) return turn ? turn[0].toUpperCase() + turn.slice(1) : ACTION_NAMES[HOLD];
+  return ACTION_NAMES[a] + (turn && a !== TACK ? `, ${turn}` : "");
+}
+
+// ---------------------------------------------------------------- sound & signals
+let audio = null;
+function ensureAudio() { if (!audio && soundOn) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch { audio = null; } } }
+function beep(freq, dur, vol = 0.12) {
+  if (!soundOn || !audio) return;
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.type = "square"; o.frequency.value = freq; g.gain.value = vol;
+  o.connect(g); g.connect(audio.destination);
+  const t = audio.currentTime; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function signal(text, sound, bad = false) {
+  if (!text) return;
+  const el = $("#signal");
+  el.textContent = text; el.style.color = bad ? "var(--bad)" : "var(--ink)";
+  el.classList.add("show");
+  clearTimeout(signalTimer); signalTimer = setTimeout(() => el.classList.remove("show"), 1800);
+  if (sound === "horn") beep(220, 0.9, 0.1);
+}
+
+// ---------------------------------------------------------------- input
+// Turn the target heading deg to the right (negative: left), at most 30° ahead of where the bow points.
+// If that would carry it across the wind, the boat goes about instead. Returns { applied: degrees
+// actually turned, cross: null | "tack" | "gybe" }.
+// - through head to wind: a tack onto close-hauled on the new tack (as a helmsman steers it), with the
+//   same manoeuvre lock as the Tack button. (The simulator's tack mirrors the current heading, which
+//   after pinching up to the wind would leave the boat head to wind on the other side.)
+// - through dead downwind: the simulator's gybe (mirror, with its speed loss), sent by the step.
+function turnBy(b, deg) {
+  if (!deg || b.man) return { applied: 0, cross: null };
+  const [wd, tws] = S.windAt(s.wind, s.t);
+  const ahead = S.wrap(b.th - b.h) / DEG;
+  const want = Math.min(Math.max(ahead + deg, -30), 30);
+  const target = S.wrap(b.h + want * DEG);
+  const before = S.stwa(b.th, wd), after = S.stwa(target, wd);
+  if (Math.sign(before) === Math.sign(after) || after === 0) { b.th = target; return { applied: want - ahead, cross: null }; }
+  if (Math.abs(before) > Math.PI / 2) return { applied: 0, cross: "gybe" };
+  const beat = S.angles(sim.P, tws)[0];
+  b.th = S.wrap(wd + Math.sign(before) * beat); // TWA = wind - heading: the opposite sign, close-hauled
+  b.man = true;
+  return { applied: 0, cross: "tack" };
+}
+// ↑ / ↓ are head up / bear away: a turn to the right on starboard tack (wind over the starboard side), to the left on port.
+function upIsRight() { const [wd] = S.windAt(s.wind, s.t); return S.stwa(s.boats[0].h, wd) >= 0 ? 1 : -1; }
+const heldKey = (ctl) => (ctl.startsWith("left") ? "left" : ctl.startsWith("right") ? "right" : ctl.startsWith("up") ? "up"
+  : ctl.startsWith("down") ? "down" : ctl === "luff" ? "luff" : null);
+function ctlDown(ctl, big = false) {
+  if (ended || (!running && !paused && !$("#overlay").hidden)) return;
+  const h = heldKey(ctl);
+  if (h && !held[h]) held[h] = performance.now();
+  if (ctl === "tack") pending = TACK;
+  else if (ctl === "luff") pending = LUFF;
+  else {
+    const step = big || ctl.endsWith("10") ? 10 : 1;
+    steerAcc += step * (h === "right" ? 1 : h === "left" ? -1 : h === "up" ? upIsRight() : -upIsRight());
+  }
+  const btn = document.querySelector(`.helm button[data-ctl="${ctl}"]`);
+  if (btn) { btn.classList.add("flash"); setTimeout(() => btn.classList.remove("flash"), 160); }
+  updateHud();
+}
+function ctlUp(ctl) { const h = heldKey(ctl); if (h) held[h] = 0; }
+const KEY_CTL = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down",
+  Space: "tack", KeyT: "tack", KeyL: "luff", KeyE: "luff" };
+document.addEventListener("keyup", (e) => { if (KEY_CTL[e.code]) ctlUp(KEY_CTL[e.code]); });
+window.addEventListener("blur", () => { held.left = held.right = held.up = held.down = held.luff = 0; });
+document.addEventListener("keydown", (e) => {
+  // Only the start-number box keeps the keys (you are typing in it). A dropdown or button that still has
+  // focus after a click must not swallow the helm: the arrows would change the dropdown instead of
+  // steering, and the boat would sail on with nobody at the helm.
+  if (e.target instanceof HTMLInputElement) return;
+  const k = e.key, ctl = KEY_CTL[e.code];
+  if (ctl || ["p", "P", "v", "V", "m", "M"].includes(k)) {
+    const el = document.activeElement;
+    if (el instanceof HTMLButtonElement || el instanceof HTMLSelectElement) el.blur();
+  }
+  if (ctl) {
+    e.preventDefault();
+    if (!e.repeat) ctlDown(ctl, e.shiftKey); // holding is tracked from keydown to keyup, not by key repeat
+    return;
+  }
+  if (k === "p" || k === "P") { e.preventDefault(); togglePause(); }
+  if (k === "Enter" && !$("#overlay").hidden) { const b = $("#go") || $("#again"); if (b) { e.preventDefault(); b.click(); } }
+  if (k === "v" || k === "V") { view = view === "follow" ? "course" : "follow"; $("#view").value = view; }
+  if (k === "m" || k === "M") setMap(!showMap);
+});
+document.querySelectorAll(".helm button").forEach((b) => {
+  b.addEventListener("pointerdown", (e) => { e.preventDefault(); b.setPointerCapture(e.pointerId); ctlDown(b.dataset.ctl); });
+  for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) b.addEventListener(ev, () => ctlUp(b.dataset.ctl));
+});
+function togglePause() {
+  if (ended || $("#overlay").hidden === false) return;
+  paused = !paused; running = !paused;
+  $("#pause").textContent = paused ? "Resume" : "Pause";
+  updateHud();
+}
+$("#pause").onclick = togglePause;
+function setSpeed(v) { speedMult = v; document.querySelectorAll("#speedseg button").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.speed === v))); }
+document.querySelectorAll("#speedseg button").forEach((b) => (b.onclick = () => setSpeed(+b.dataset.speed)));
+document.querySelectorAll(".modes button").forEach((b) => (b.onclick = () => {
+  mode = b.dataset.mode;
+  document.querySelectorAll(".modes button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  newRace(); showIntro();
+}));
+$("#opp").onchange = (e) => {
+  e.target.blur(); opp = e.target.value;
+  if (opp === "custom" && !customAgent) $("#agent-file").click();
+  newRace(seed); showIntro();
+};
+$("#agent-load").onclick = () => $("#agent-file").click();
+$("#agent-file").onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  let agent = null;
+  try { agent = JSON.parse(await file.text()); } catch { agent = null; }
+  // A valid file is kept even if it does not fit the current mode (a race agent picked during a start):
+  // showAgentNote says so and the mode it fits uses it.
+  if (S.agentProblem(agent, false) === "not a sail_env agent file") {
+    $("#agent-note").hidden = false; $("#agent-note").textContent = `${file.name}: not a sail_env agent file (make one with python -m sail_env.agents.export).`;
+    return;
+  }
+  agent.name = agent.name || file.name.replace(/\.json$/, "");
+  customAgent = agent;
+  try { localStorage.setItem("j70-agent", JSON.stringify(agent)); } catch { /* too big or blocked: keep it for this visit */ }
+  opp = "custom"; $("#opp").value = "custom";
+  newRace(seed); showIntro();
+};
+// The opponents actually sailing: an uploaded agent that does not fit this mode falls back to the digital sailors.
+function effectiveOpp() {
+  if (opp !== "custom") return opp;
+  return customAgent && !S.agentProblem(customAgent, sim.p.race) ? "custom" : "digital";
+}
+function oppName() {
+  const o = effectiveOpp();
+  return o === "custom" ? customAgent.name : o === "rl" ? (sim.p.race ? "RL racer" : "RL boat") : sim.p.race ? "Digital racer" : "Digital sailor";
+}
+function showAgentNote() {
+  const custom = opp === "custom", note = $("#agent-note");
+  $("#agent-load").hidden = !custom;
+  note.hidden = !custom;
+  if (!custom) return;
+  if (!customAgent) { note.textContent = "Load an agent exported with: python -m sail_env.agents.export <run dir> -o agent.json"; return; }
+  const why = S.agentProblem(customAgent, sim.p.race);
+  note.textContent = why ? `${customAgent.name}: ${why}. Racing digital sailors instead.`
+    : `Racing ${customAgent.name} (${customAgent.kind || (sim.p.race ? "race" : "start")} agent${customAgent.source ? ", " + customAgent.source : ""}).`;
+}
+$("#view").onchange = (e) => { view = e.target.value; e.target.blur(); };
+function setMap(on) {
+  showMap = on; $("#map-btn").setAttribute("aria-pressed", String(on));
+  try { localStorage.setItem("j70-map", on ? "on" : "off"); } catch {}
+}
+setMap(showMap);
+$("#map-btn").onclick = () => setMap(!showMap);
+$("#skip").onclick = () => { skip = true; $("#skip").hidden = true; };
+cv.addEventListener("click", (e) => { // click on the map: switch to the whole view
+  if (!mapBox) return;
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  if (x >= mapBox.x && x <= mapBox.x + mapBox.w && y >= mapBox.y && y <= mapBox.y + mapBox.h) { view = "course"; $("#view").value = view; }
+});
+$("#restart").onclick = () => { newRace(); showIntro(); };
+$("#seed-go").onclick = () => { const v = parseInt($("#seed").value, 10); if (v > 0) { newRace(v); showIntro(); } };
+$("#sound").onclick = () => { soundOn = !soundOn; $("#sound").textContent = soundOn ? "Sound on" : "Sound off"; $("#sound").setAttribute("aria-pressed", String(soundOn)); if (soundOn) ensureAudio(); };
+
+// ---------------------------------------------------------------- drawing
+const tokens = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ["water", "water-grid", "streak", "ink", "muted", "accent", "buoy-w", "buoy", "committee", "good", "bad", "warn", "shadow-cone", "boat-1", "boat-2", "boat-3", "boat-4", "surface"])
+    tokens[k] = cs.getPropertyValue("--" + k).trim();
+  tokens.font = getComputedStyle(document.body).fontFamily;
+}
+document.fonts && document.fonts.ready.then(readTokens);
+readTokens();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  const r = cv.getBoundingClientRect(); DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = r.width; H = r.height; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+}
+new ResizeObserver(resize).observe(cv);
+
+const lerp = (a, b, f) => a + (b - a) * f;
+const lerpAng = (a, b, f) => a + S.wrap(b - a) * f;
+function interpBoat(i, f) {
+  const a = prev.boats[i], b = s.boats[i];
+  if (b.x > S.PARK_X / 2) return null;
+  if (a.x > S.PARK_X / 2) return { x: b.x, y: b.y, h: b.h };
+  return { x: lerp(a.x, b.x, f), y: lerp(a.y, b.y, f), h: lerpAng(a.h, b.h, f) };
+}
+
+function cameraTarget(f) {
+  const p = sim.p, pts = [[s.line.px, s.line.py], [s.line.cx, s.line.cy]];
+  const me = interpBoat(0, f);
+  if (p.race) {
+    const k = sim.course(s);
+    if (view === "course" || !me) {
+      pts.push(k.w, k.g1, k.g2);
+      s.boats.forEach((_, i) => { const q = interpBoat(i, f); if (q) pts.push([q.x, q.y]); });
+      return fit(pts, 40, 120);
+    }
+    return { x: me.x, y: me.y + 10, span: 210 };
+  }
+  if (view === "follow" && me) return { x: me.x, y: me.y + 5, span: 95 };
+  s.boats.forEach((_, i) => { const q = interpBoat(i, f); if (q) pts.push([q.x, q.y]); });
+  return fit(pts, 25, 110);
+}
+
+// The whole area, for the map: the course (race) or the line, plus every boat and its track.
+function wholeArea() {
+  const pts = [[s.line.px, s.line.py], [s.line.cx, s.line.cy]];
+  if (sim.p.race) { const k = sim.course(s); pts.push(k.w, k.g1, k.g2); }
+  s.boats.forEach((b, i) => { if (b.x < S.PARK_X / 2) pts.push([b.x, b.y]); trails[i].forEach((q, j) => { if (j % 5 === 0) pts.push(q); }); });
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const pad = sim.p.race ? 30 : 20, minSpan = sim.p.race ? 200 : 120;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const w = Math.max(x1 - x0 + 2 * pad, minSpan * 0.6), h = Math.max(y1 - y0 + 2 * pad, minSpan * 0.6);
+  return { x0: cx - w / 2, x1: cx + w / 2, y0: cy - h / 2, y1: cy + h / 2 };
+}
+
+function drawMap(f, k) {
+  mapBox = null;
+  if (!showMap || view !== "follow" || !W) return;
+  const a = wholeArea(), aw = a.x1 - a.x0, ah = a.y1 - a.y0;
+  const size = Math.min(Math.max(0.3 * Math.min(W, H), 120), 210);
+  const sc = size / Math.max(aw, ah), mw = aw * sc, mh = ah * sc;
+  const mx = W - mw - 12, my = H - mh - 12;
+  mapBox = { x: mx, y: my, w: mw, h: mh };
+  const X = (x) => mx + (x - a.x0) * sc, Y = (y) => my + mh - (y - a.y0) * sc;
+  ctx.save();
+  ctx.fillStyle = tokens.surface; ctx.globalAlpha = 0.9; ctx.fillRect(mx - 4, my - 16, mw + 8, mh + 20); ctx.globalAlpha = 1;
+  ctx.strokeStyle = tokens.muted; ctx.lineWidth = 1; ctx.strokeRect(mx - 4, my - 16, mw + 8, mh + 20);
+  ctx.fillStyle = tokens.muted; ctx.font = "600 10px " + tokens.font; ctx.fillText("MAP  (M)", mx, my - 5);
+  ctx.beginPath(); ctx.rect(mx, my, mw, mh); ctx.clip();
+  ctx.fillStyle = tokens.water; ctx.fillRect(mx, my, mw, mh);
+  // line, course and marks
+  ctx.setLineDash([3, 3]); ctx.strokeStyle = tokens.ink; ctx.globalAlpha = 0.6;
+  ctx.beginPath(); ctx.moveTo(X(s.line.px), Y(s.line.py)); ctx.lineTo(X(s.line.cx), Y(s.line.cy)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  const dot = (x, y, r, c) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, 2 * Math.PI); ctx.fill(); };
+  dot(s.line.px, s.line.py, 2.5, tokens.buoy); dot(s.line.cx, s.line.cy, 3, tokens.committee);
+  if (sim.p.race) { const kk = sim.course(s); dot(kk.w[0], kk.w[1], 3.5, tokens["buoy-w"]); dot(kk.g1[0], kk.g1[1], 2.5, tokens.buoy); dot(kk.g2[0], kk.g2[1], 2.5, tokens.buoy); }
+  // tracks and boats (you last, on top)
+  const colors = [tokens.accent, tokens["boat-1"], tokens["boat-2"], tokens["boat-3"], tokens["boat-4"]];
+  trails.forEach((tr, i) => {
+    if (tr.length < 2) return;
+    ctx.strokeStyle = colors[i % colors.length]; ctx.globalAlpha = i === 0 ? 0.7 : 0.35; ctx.lineWidth = i === 0 ? 1.3 : 0.8;
+    ctx.beginPath(); tr.forEach(([x, y], j) => (j ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  for (const i of s.boats.map((_, j) => j).reverse()) {
+    const q = interpBoat(i, f); if (!q) continue;
+    const r = i === 0 ? 5 : 3.5, fx = Math.sin(q.h), fy = -Math.cos(q.h); // screen y points down
+    const cx = X(q.x), cy = Y(q.y);
+    ctx.fillStyle = colors[i % colors.length]; ctx.strokeStyle = tokens.ink; ctx.lineWidth = i === 0 ? 1.2 : 0.6;
+    ctx.beginPath(); ctx.moveTo(cx + fx * r * 1.6, cy + fy * r * 1.6);
+    ctx.lineTo(cx - fx * r - fy * r * 0.8, cy - fy * r + fx * r * 0.8); ctx.lineTo(cx - fx * r + fy * r * 0.8, cy - fy * r - fx * r * 0.8);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  // what the main view shows
+  const vw = W / k, vh = H / k;
+  ctx.strokeStyle = tokens.accent; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+  ctx.strokeRect(X(cam.x - vw / 2), Y(cam.y + vh / 2), vw * sc, vh * sc);
+  ctx.restore();
+}
+function fit(pts, pad, minSpan) {
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const aspect = W / Math.max(H, 1);
+  let sx = x1 - x0 + 2 * pad, sy = y1 - y0 + 2 * pad;
+  const span = Math.max(minSpan, Math.max(sx / aspect, sy)); // span = visible height in metres
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, span };
+}
+
+function hullPts(x, y, h, L, B) {
+  const pts = [[0.5, 0], [0.15, 0.5], [-0.5, 0.4], [-0.5, -0.4], [0.15, -0.5]];
+  const fx = Math.sin(h), fy = Math.cos(h), rx = fy, ry = -fx;
+  return pts.map(([a, b]) => [x + a * L * fx + b * B * rx, y + a * L * fy + b * B * ry]);
+}
+
+function moveStreaks(dt) { // wind streaks drift downwind at a visible fraction of the wind speed
+  if (!sim || reduceMotion) return;
+  const [wd, tws] = S.windAt(s.wind, s.t), v = 0.8 * tws * dt;
+  for (const st of streaks) { st.x -= Math.sin(wd) * v; st.y -= Math.cos(wd) * v; }
+}
+function draw(f) {
+  if (!sim || !W) return;
+  const p = sim.p;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const tgt = cameraTarget(f);
+  if (!cam) cam = { ...tgt };
+  const sm = reduceMotion ? 1 : 0.12;
+  cam.x = lerp(cam.x, tgt.x, sm); cam.y = lerp(cam.y, tgt.y, sm); cam.span = lerp(cam.span, tgt.span, sm);
+  const k = H / cam.span; // px per metre
+  const X = (x) => W / 2 + (x - cam.x) * k, Y = (y) => H / 2 - (y - cam.y) * k;
+  ctx.fillStyle = tokens.water; ctx.fillRect(0, 0, W, H);
+
+  // chart grid every 50 m
+  ctx.strokeStyle = tokens["water-grid"]; ctx.lineWidth = 1;
+  const g = 50, gx0 = Math.floor((cam.x - W / 2 / k) / g) * g, gy0 = Math.floor((cam.y - H / 2 / k) / g) * g;
+  ctx.beginPath();
+  for (let x = gx0; x < cam.x + W / 2 / k; x += g) { ctx.moveTo(X(x), 0); ctx.lineTo(X(x), H); }
+  for (let y = gy0; y < cam.y + H / 2 / k; y += g) { ctx.moveTo(0, Y(y)); ctx.lineTo(W, Y(y)); }
+  ctx.stroke();
+
+  // wind streaks drift downwind (current direction, shifts included)
+  const [wd, tws] = S.windAt(s.wind, s.t);
+  const dxw = -Math.sin(wd), dyw = -Math.cos(wd);
+  const viewW = W / k, viewH = H / k;
+  while (streaks.length < 55) streaks.push({ x: cam.x + (Math.random() - 0.5) * viewW, y: cam.y + (Math.random() - 0.5) * viewH, a: Math.random() });
+  ctx.strokeStyle = tokens.streak; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  for (const st of streaks) {
+    if (Math.abs(st.x - cam.x) > viewW * 0.6 || Math.abs(st.y - cam.y) > viewH * 0.6) {
+      st.x = cam.x + (Math.random() - 0.5) * viewW; st.y = cam.y + (Math.random() - 0.5) * viewH;
+    }
+    const len = (8 + 1.6 * tws) / k; // 10-24 px on screen, longer in more wind
+    ctx.moveTo(X(st.x), Y(st.y)); ctx.lineTo(X(st.x + dxw * len), Y(st.y + dyw * len));
+  }
+  ctx.stroke();
+
+  const hs = Math.max(1, 19 / (p.L * k)); // hull scale: at least ~19 px long
+  // shadow cones (true size)
+  if (!p.solo) {
+    ctx.fillStyle = tokens["shadow-cone"];
+    s.boats.forEach((bb, i) => {
+      const q = interpBoat(i, f); if (!q) return;
+      let ux = dxw, uy = dyw;
+      const ax = tws * dxw - bb.v * Math.sin(q.h), ay = tws * dyw - bb.v * Math.cos(q.h), nn = Math.hypot(ax, ay);
+      if (nn > 1e-6) { ux = ax / nn; uy = ay / nn; }
+      const len = p.shadowLenBL * p.L, w = len * Math.tan(p.shadowHalf);
+      ctx.beginPath(); ctx.moveTo(X(q.x), Y(q.y));
+      ctx.lineTo(X(q.x + ux * len + uy * w), Y(q.y + uy * len - ux * w));
+      ctx.lineTo(X(q.x + ux * len - uy * w), Y(q.y + uy * len + ux * w));
+      ctx.closePath(); ctx.fill();
+    });
+  }
+
+  // course
+  ctx.setLineDash([6, 5]); ctx.strokeStyle = tokens.ink; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.moveTo(X(s.line.px), Y(s.line.py)); ctx.lineTo(X(s.line.cx), Y(s.line.cy)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  const mr = (r) => Math.max(r * k, 4);
+  const buoy = (x, y, r, color, label) => {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(x), Y(y), mr(r), 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = tokens.ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+    if (label) { ctx.fillStyle = tokens.ink; ctx.font = "600 11px " + tokens.font; ctx.fillText(label, X(x) + mr(r) + 4, Y(y) - mr(r) - 2); }
+  };
+  buoy(s.line.px, s.line.py, p.pinR, tokens.buoy, "pin");
+  // committee boat: a small motor-boat shape across the starboard end
+  {
+    const cx = X(s.line.cx), cy = Y(s.line.cy), r = Math.max(p.cbR * k, 7);
+    ctx.fillStyle = tokens.committee; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.55, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = tokens.ink; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - r * 1.6); ctx.stroke();
+    ctx.fillStyle = tokens.accent; ctx.fillRect(cx, cy - r * 1.6, r * 0.8, r * 0.5);
+    ctx.fillStyle = tokens.ink; ctx.font = "600 11px " + tokens.font; ctx.fillText("RC", cx + r + 4, cy + 4);
+  }
+  if (p.race) {
+    const kk = sim.course(s);
+    const myLeg = Math.min(s.leg[0], 4);
+    const targetMark = !s.boats[0].started ? null : myLeg === 0 || myLeg === 2 ? [kk.w] : myLeg === 1 ? [kk.g1, kk.g2] : null;
+    if (targetMark) { // the 3-length zone around the mark(s) you are rounding
+      ctx.setLineDash([3, 4]); ctx.strokeStyle = tokens.ink; ctx.globalAlpha = 0.35;
+      targetMark.forEach((m) => { ctx.beginPath(); ctx.arc(X(m[0]), Y(m[1]), p.zoneBL * p.L * k, 0, 2 * Math.PI); ctx.stroke(); });
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+    ctx.setLineDash([2, 4]); ctx.strokeStyle = tokens.buoy; ctx.beginPath(); ctx.moveTo(X(kk.g1[0]), Y(kk.g1[1])); ctx.lineTo(X(kk.g2[0]), Y(kk.g2[1])); ctx.stroke(); ctx.setLineDash([]);
+    buoy(kk.w[0], kk.w[1], p.markR, tokens["buoy-w"], "windward mark");
+    buoy(kk.g1[0], kk.g1[1], p.markR, tokens.buoy, "gate");
+    buoy(kk.g2[0], kk.g2[1], p.markR, tokens.buoy, "");
+  }
+
+  // trails
+  const colors = [tokens.accent, tokens["boat-1"], tokens["boat-2"], tokens["boat-3"], tokens["boat-4"]];
+  trails.forEach((tr, i) => {
+    if (tr.length < 2) return;
+    ctx.strokeStyle = colors[i % colors.length]; ctx.globalAlpha = i === 0 ? 0.55 : 0.32; ctx.lineWidth = i === 0 ? 1.6 : 1.1;
+    ctx.beginPath(); tr.forEach(([x, y], j) => (j ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))));
+    const q = interpBoat(i, f); if (q) ctx.lineTo(X(q.x), Y(q.y));
+    ctx.stroke(); ctx.globalAlpha = 1;
+  });
+
+  // boats (player last, on top)
+  const order = s.boats.map((_, i) => i).reverse();
+  for (const i of order) {
+    const q = interpBoat(i, f); if (!q) continue;
+    const bb = s.boats[i], twa = S.stwa(q.h, wd), L = p.L * hs, B = p.B * hs;
+    const pts = hullPts(q.x, q.y, q.h, L, B);
+    ctx.beginPath(); pts.forEach(([x, y], j) => (j ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)))); ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length]; ctx.fill();
+    ctx.lineWidth = bb.ocs ? 2.5 : bb.started ? 2 : 1;
+    ctx.strokeStyle = bb.ocs ? tokens.bad : bb.started ? tokens.good : tokens.ink; ctx.stroke();
+    // sails: main on the leeward side, kite downwind
+    const fx = Math.sin(q.h), fy = Math.cos(q.h), rx = fy, ry = -fx;
+    const P2 = (a, b) => [X(q.x + a * fx + b * rx), Y(q.y + a * fy + b * ry)];
+    const lee = twa >= 0 ? -1 : 1, at = Math.abs(twa) / DEG;
+    let boom = Math.min(Math.max(0.55 * (at - 25), 4), 85) * DEG;
+    const luffing = (i === 0 ? lastAction === LUFF : false) || at < 30;
+    if (luffing) boom = (6 + 4 * Math.sin(performance.now() / 70)) * DEG;
+    const mast = 0.1 * L, bl = 0.42 * L;
+    const [mx, my] = P2(mast, 0), [ex, ey] = P2(mast - bl * Math.cos(boom), lee * bl * Math.sin(boom));
+    ctx.strokeStyle = tokens.ink; ctx.lineWidth = Math.max(1.2, 0.18 * hs); ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey); ctx.stroke();
+    if (at > 105 && bb.started && !luffing) {
+      const [bx1, by1] = P2(0.5 * L, 0), [kx, ky] = P2(0.95 * L, lee * 0.55 * L), [cx2, cy2] = P2(0.2 * L, lee * 0.75 * L);
+      ctx.fillStyle = colors[i % colors.length]; ctx.globalAlpha = 0.45;
+      ctx.beginPath(); ctx.moveTo(bx1, by1); ctx.quadraticCurveTo(kx, ky, cx2, cy2); ctx.lineTo(mx, my); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    if (s.penLeft[i] > 0) {
+      ctx.strokeStyle = tokens.warn; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.arc(X(q.x), Y(q.y), 0.75 * L * k, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+    }
+    const label = i === 0 ? "YOU" : String(i);
+    ctx.font = (i === 0 ? "700 " : "600 ") + "11px " + tokens.font;
+    ctx.fillStyle = bb.ocs ? tokens.bad : tokens.ink;
+    ctx.fillText(bb.ocs ? label + " · OCS" : label, X(q.x) + 0.6 * L * k + 3, Y(q.y) - 0.6 * L * k);
+  }
+
+  // wind rose (top right): arrow points downwind, with the shift from the mean
+  {
+    const cx = W - 46, cy = 46, r = 28;
+    ctx.fillStyle = tokens.surface; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = tokens.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke();
+    const ax = Math.sin(wd), ay = -Math.cos(wd);
+    ctx.strokeStyle = tokens["boat-1"]; ctx.fillStyle = tokens["boat-1"]; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx + ax * r * 0.85, cy + ay * r * 0.85); ctx.lineTo(cx - ax * r * 0.55, cy - ay * r * 0.55); ctx.stroke();
+    const hx = cx - ax * r * 0.85, hy = cy - ay * r * 0.85, px = -ay, py = ax;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + ax * 10 + px * 6, hy + ay * 10 + py * 6); ctx.lineTo(hx + ax * 10 - px * 6, hy + ay * 10 - py * 6); ctx.closePath(); ctx.fill();
+    const shift = Math.round(S.wrap(wd - s.wind.base) / DEG);
+    ctx.fillStyle = tokens.ink; ctx.font = "600 11px " + tokens.font; ctx.textAlign = "center";
+    ctx.fillText(`${(tws / KNOT).toFixed(1)} kn`, cx, cy + r + 18);
+    ctx.fillStyle = tokens.muted; ctx.fillText(shift === 0 ? "mean" : `${Math.abs(shift)}° ${shift > 0 ? "right" : "left"}`, cx, cy + r + 31);
+    ctx.textAlign = "start";
+  }
+  // scale bar
+  {
+    const m = cam.span > 300 ? 100 : cam.span > 120 ? 50 : 20, px = m * k;
+    ctx.strokeStyle = tokens.ink; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(14, H - 16); ctx.lineTo(14 + px, H - 16); ctx.moveTo(14, H - 20); ctx.lineTo(14, H - 12); ctx.moveTo(14 + px, H - 20); ctx.lineTo(14 + px, H - 12); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.fillStyle = tokens.ink; ctx.font = "11px " + tokens.font; ctx.fillText(`${m} m`, 20 + px, H - 12);
+  }
+  drawMap(f, k);
+  // pointer to the next mark when it is off screen (race, follow view)
+  if (p.race && s.boats[0].started && s.leg[0] < 4) {
+    const kk = sim.course(s), leg = s.leg[0], tgtp = leg === 1 ? kk.g : leg === 3 ? kk.c : kk.w;
+    const sx = X(tgtp[0]), sy = Y(tgtp[1]);
+    if (sx < 0 || sx > W || sy < 0 || sy > H) {
+      const ang = Math.atan2(sy - H / 2, sx - W / 2), rr = Math.min(W, H) / 2 - 26;
+      const ax2 = W / 2 + Math.cos(ang) * rr, ay2 = H / 2 + Math.sin(ang) * rr;
+      ctx.fillStyle = tokens.ink; ctx.globalAlpha = 0.75; ctx.beginPath();
+      ctx.moveTo(ax2 + Math.cos(ang) * 12, ay2 + Math.sin(ang) * 12);
+      ctx.lineTo(ax2 + Math.cos(ang + 2.5) * 10, ay2 + Math.sin(ang + 2.5) * 10);
+      ctx.lineTo(ax2 + Math.cos(ang - 2.5) * 10, ay2 + Math.sin(ang - 2.5) * 10); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ---------------------------------------------------------------- main loop
+// The simulation runs on its own timer, so it advances even where animation frames are throttled
+// (some embedded viewers, low-power modes); animation frames only draw.
+let lastSim = performance.now();
+function advance() {
+  const now = performance.now(), dt = Math.min((now - lastSim) / 1000, 1); lastSim = now;
+  if (!running || paused || ended) return;
+  const rate = HOLD_RATE * dt * speedMult, heldFor = (k) => held[k] && now - held[k] > HOLD_DELAY;
+  if (heldFor("right")) steerAcc += rate;
+  if (heldFor("left")) steerAcc -= rate;
+  if (heldFor("up")) steerAcc += rate * upIsRight();
+  if (heldFor("down")) steerAcc -= rate * upIsRight();
+  if (skip) { // you have finished: sail the rest of the race for the others at once
+    let n = 0;
+    while (!ended && n < 300) { stepOnce(); n++; }
+    acc = 0;
+    return;
+  }
+  acc += dt * speedMult;
+  let n = 0;
+  while (acc >= 1 && !ended && n < 16) { stepOnce(); acc -= 1; n++; }
+  moveStreaks(dt * speedMult);
+}
+setInterval(advance, 40);
+setInterval(updateHud, 100);
+function frame() {
+  draw(running && !ended ? Math.min(acc, 1) : 1);
+  requestAnimationFrame(frame);
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden && running && !paused && !ended) togglePause(); });
+
+// ---------------------------------------------------------------- boot
+function start(data) {
+  if (data && data.mode && MODE_INFO[data.mode]) {
+    mode = data.mode; opp = data.opp || opp;
+    document.querySelectorAll(".modes button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.mode === mode)));
+    $("#opp").value = opp;
+  }
+  resize(); renderRecord();
+  newRace(data && data.seed); showIntro();
+  requestAnimationFrame(frame);
+}
+start({});
+})();
+</script>
+</body>
+</html>

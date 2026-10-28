@@ -1,0 +1,66 @@
+# Phase 4 competitive run c4: run C3 + wind shifts (up to +-5 deg, 2 min period, random phase) and line
+# bias (up to +-10 deg); height and ranking measured along the current wind axis. From run C3.
+# Run C3 header:
+# Phase 4 competitive run c3: line 1.6 x 5 x boat length (55 m), penalties are real 360-degree turns
+# (30 deg/s, keep clear while turning), 2x longer training; from run C1. Run C1 header:
+# Phase 4 competitive run c1: run 4b + rank reward 3 (leader +1.5, last -1.5), contact
+# cost 2 for the boat at fault / 0.5 for the right-of-way boat, crowded 43 m line (1.25 x 5 x boat length). From run 4b.
+# Run 4b header:
+# Phase 4 run 4b: run 3 + wind shadow along the apparent wind, contact cost 2; warm start from run 3.
+# Run 3 header:
+# Phase 4 run 3: run 2 + racing each other: at T+10 boats are ranked by height (legal starters with
+# no penalty to serve); zero-sum rank reward, leader +0.5 ... last -0.5. Run 2 header:
+# Phase 4 run 2: run 1 + avoid contact at all times: marks are obstacles (pin r 1 m, committee boat
+# r 4 m), every contact costs -1 to every boat involved (plus the 15 s penalty for the boat at fault).
+# Warm start from fleet run 1, full rules throughout (no staged rules). Run 1 header:
+# Phase 4 run 1: 5 boats, line 2 x 5 x boat length (69 m), T-90 to T+10, no line bias.
+# Good fleet start = solo definition (0-3 m at the gun, cross fast on starboard) + clear air at the end
+# + no penalty left to serve. Contact: the keep-clear boat serves a 15 s penalty (forced luff).
+# Shared policy for all boats, warm-started from the best solo policy; staged rules as in Phase 2/3.
+name: fleet
+env: fleet_start
+wandb: false            # set true (and `pip install wandb`, `wandb login`) for live dashboards
+gif_every: 100
+init_from: sail_env/pretrained/solo   # warm start from the bundled solo policy
+env_params:
+  fleet_size: 5
+  line_fleet_size: 5
+  line_length_factor: 1.6
+  t_start: -90.0
+  random_start_time: true
+  port_penalty: 1.0
+  upwind_bonus: 1.0
+  efficiency_tail_seconds: 10.0
+  gun_distance_max: 3.0
+  foul_penalty: 1.0
+  penalty_seconds: 15.0
+  penalty_turn: true     # a penalty is a 360-degree turn
+  penalty_turns: 1.0
+  penalty_turn_rate: 0.5236  # 30 deg/s: a 360 in ~12 s
+  contact_cost: 2.0      # boat at fault (or both if undecided), and mark hits
+  contact_cost_row: 0.5  # boat that had right of way (RRS 14: still avoid contact)
+  shadow_apparent: true
+  shift_amp_max: 0.0873  # wind shifts up to +-5 deg
+  shift_period: 120.0    # s
+  line_bias_max: 0.1745  # line bias up to +-10 deg  # shadow cast along each boat's apparent wind
+  rank_reward: 3.0       # zero-sum ranking by height at T+10: +1.5 for the leader, -1.5 for last
+ppo:
+  num_envs: 128          # x 5 boats = 640 boats per step
+  num_steps: 32
+  total_timesteps: 8000000   # env steps per seed (= 40M boat-steps)
+  lr: 3.0e-4
+  anneal_lr: true
+  update_epochs: 4
+  num_minibatches: 4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  normalize_advantages: true
+  clip_value_loss: true
+  hidden: 64
+  num_seeds: 3
+  updates_per_chunk: 10
+  stagger_steps: 100

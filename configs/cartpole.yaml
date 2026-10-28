@@ -1,0 +1,23 @@
+# PPO sanity check: CartPole-v1 should reach a return of ~500.
+name: cartpole
+env: cartpole
+wandb: false            # set true (and `pip install wandb`, `wandb login`) for live dashboards
+ppo:
+  num_envs: 4
+  num_steps: 128
+  total_timesteps: 500000
+  lr: 3.0e-4
+  anneal_lr: true
+  update_epochs: 4
+  num_minibatches: 4
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  normalize_advantages: true
+  clip_value_loss: true
+  hidden: 64
+  num_seeds: 5
+  updates_per_chunk: 10

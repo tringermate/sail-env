@@ -1,0 +1,541 @@
+[
+ {
+  "agent": "random",
+  "mode": "solo",
+  "weather": false,
+  "opponents": null,
+  "episodes": 512,
+  "seed": 0,
+  "metrics": {
+   "good_start_on_line": {
+    "mean": 0.001953125,
+    "ci95": 0.0038281249999999995
+   },
+   "success_strict": {
+    "mean": 0.001953125,
+    "ci95": 0.0038281249999999995
+   },
+   "started": {
+    "mean": 0.037109375,
+    "ci95": 0.016389885531525695
+   },
+   "ocs": {
+    "mean": 0.181640625,
+    "ci95": 0.03342905856391101
+   },
+   "upwind_efficiency": {
+    "mean": 0.36408478021621704,
+    "ci95": 0.0
+   }
+  },
+  "seconds": 5.7
+ },
+ {
+  "agent": "digital",
+  "mode": "solo",
+  "weather": false,
+  "opponents": null,
+  "episodes": 512,
+  "seed": 0,
+  "metrics": {
+   "good_start_on_line": {
+    "mean": 0.17578125,
+    "ci95": 0.03300297880683112
+   },
+   "success_strict": {
+    "mean": 0.330078125,
+    "ci95": 0.04077238088652704
+   },
+   "started": {
+    "mean": 0.619140625,
+    "ci95": 0.04210392632868471
+   },
+   "ocs": {
+    "mean": 0.111328125,
+    "ci95": 0.02727211292377744
+   },
+   "upwind_efficiency": {
+    "mean": 0.9574649400964996,
+    "ci95": 0.00768782519219753
+   }
+  },
+  "seconds": 9.7
+ },
+ {
+  "agent": "rl-solo",
+  "mode": "solo",
+  "weather": false,
+  "opponents": null,
+  "episodes": 512,
+  "seed": 0,
+  "metrics": {
+   "good_start_on_line": {
+    "mean": 0.865234375,
+    "ci95": 0.029607522554732285
+   },
+   "success_strict": {
+    "mean": 0.935546875,
+    "ci95": 0.021291212129910086
+   },
+   "started": {
+    "mean": 0.9765625,
+    "ci95": 0.013117506422455094
+   },
+   "ocs": {
+    "mean": 0.005859375,
+    "ci95": 0.006617518724728464
+   },
+   "upwind_efficiency": {
+    "mean": 0.9693238567210936,
+    "ci95": 0.0014954663885008643
+   }
+  },
+  "seconds": 9.3
+ },
+ {
+  "agent": "digital",
+  "mode": "fleet-self",
+  "weather": false,
+  "opponents": null,
+  "episodes": 512,
+  "seed": 0,
+  "metrics": {
+   "good_start_on_line": {
+    "mean": 0.072265625,
+    "ci95": 0.010032256657497105
+   },
+   "success_strict": {
+    "mean": 0.13125,
+    "ci95": 0.013083320888179404
+   },
+   "started": {
+    "mean": 0.308984375,
+    "ci95": 0.01790330132910406
+   },
+   "ocs": {
+    "mean": 0.056640625,
+    "ci95": 0.008956194814716118
+   },
+   "fouls": {
+    "mean": 0.44609375,
+    "ci95": 0.02395492875178105
+   },
+   "contacts": {
+    "mean": 1.11953125,
+    "ci95": 0.04323354290910024
+   },
+   "mark_hits": {
+    "mean": 0.04375,
+    "ci95": 0.008286657578644913
+   },
+   "rank": {
+    "mean": 2.0,
+    "ci95": 0.04307439469012957
+   },
+   "upwind_efficiency": {
+    "mean": 0.9654533955312911,
+    "ci95": 0.004297998028405543
+   }
+  },
+  "seconds": 15.5
+ },
+ {
+  "agent": "rl",
+  "mode": "fleet-self",
+  "weather": false,
+  "opponents": null,
+  "episodes": 512,
+  "seed": 0,
+  "metrics": {
+   "good_start_on_line": {
+    "mean": 0.6921875,
+    "ci95": 0.017884464074553033
+   },
+   "success_strict": {
+    "mean": 0.727734375,
+    "ci95": 0.01724661146469955
+   },
+   "started": {
+    "mean": 0.899609375,
+    "ci95": 0.011643793473899353
+   },
+   "ocs": {
+    "mean": 0.0,
+    "ci95": 0.0
+   },
+   "fouls": {
+    "mean": 0.216796875,
+    "ci95": 0.020385686436025403
+   },
+   "contacts": {
+    "mean": 0.44140625,
+    "ci95": 0.03294798803014886
+   },
+   "mark_hits": {
+    "mean": 0.05625,
+    "ci95": 0.010040119550392138
+   },
+   "rank": {
+    "mean": 2.0,
+    "ci95": 0.05457722224306271
+   },
+   "upwind_efficiency": {
+    "mean": 0.9671943021985195,
+    "ci95": 0.0010965773638812136
+   }
+  },
+  "seconds": 15.4
+ },
+ {
+  "agent": "digital",
+  "mode": "fleet-vs",
+  "weather": false,
+  "opponents": "rl",
+  "episodes": 512,
+  "seed": 0,
+  "metrics": {
+   "good_start_on_line": {
+    "mean": 0.05859375,
+    "ci95": 0.02036384612815057
+   },
+   "success_strict": {
+    "mean": 0.111328125,
+    "ci95": 0.02727211292377744
+   },
+   "started": {
+    "mean": 0.369140625,
+    "ci95": 0.04184155570152939
+   },
+   "ocs": {
+    "mean": 0.025390625,
+    "ci95": 0.013639473591741107
+   },
+   "fouls": {
+    "mean": 0.259765625,
+    "ci95": 0.03990504137023902
+   },
+   "contacts": {
+    "mean": 0.42578125,
+    "ci95": 0.05800944390982285
+   },
+   "mark_hits": {
+    "mean": 0.0703125,
+    "ci95": 0.022168197758646015
+   },
+   "rank": {
+    "mean": 3.6416015625,
+    "ci95": 0.04816338895153365
+   },
+   "upwind_efficiency": {
+    "mean": 0.9693566466632643,
+    "ci95": 0.009589753673583707
+   }
+  },
+  "seconds": 14.0
+ },
+ {
+  "agent": "rl",
+  "mode": "fleet-vs",
+  "weather": false,
+  "opponents": "digital",
+  "episodes": 512,
+  "seed": 0,
+  "metrics": {
+   "good_start_on_line": {
+    "mean": 0.662109375,
+    "ci95": 0.0410108301991916
+   },
+   "success_strict": {
+    "mean": 0.734375,
+    "ci95": 0.03829473221490076
+   },
+   "started": {
+    "mean": 0.841796875,
+    "ci95": 0.03164148115280039
+   },
+   "ocs": {
+    "mean": 0.0,
+    "ci95": 0.0
+   },
+   "fouls": {
+    "mean": 0.185546875,
+    "ci95": 0.0341387147399813
+   },
+   "contacts": {
+    "mean": 0.349609375,
+    "ci95": 0.05841808499294859
+   },
+   "mark_hits": {
+    "mean": 0.029296875,
+    "ci95": 0.015593657026962247
+   },
+   "rank": {
+    "mean": 0.6337890625,
+    "ci95": 0.09770029240161426
+   },
+   "upwind_efficiency": {
+    "mean": 0.9821734047950582,
+    "ci95": 0.0014370948211703933
+   }
+  },
+  "seconds": 14.1
+ },
+ {
+  "agent": "random",
+  "mode": "race-solo",
+  "weather": false,
+  "opponents": null,
+  "episodes": 128,
+  "seed": 0,
+  "metrics": {
+   "started": {
+    "mean": 0.1953125,
+    "ci95": 0.06894977573257823
+   },
+   "race_finished": {
+    "mean": 0.0,
+    "ci95": 0.0
+   },
+   "finish_time": {
+    "mean": NaN,
+    "ci95": 0.0
+   },
+   "race_rank": {
+    "mean": 1.0,
+    "ci95": 0.0
+   },
+   "legs_completed": {
+    "mean": 0.015625,
+    "ci95": 0.030624999999999996
+   },
+   "fouls": {
+    "mean": 0.328125,
+    "ci95": 0.10222390256158909
+   },
+   "contacts": {
+    "mean": 0.4375,
+    "ci95": 0.14543225687096611
+   },
+   "mark_hits": {
+    "mean": 0.4375,
+    "ci95": 0.14543225687096611
+   }
+  },
+  "seconds": 12.0
+ },
+ {
+  "agent": "examples.my_agent:make_policy",
+  "mode": "race-solo",
+  "weather": false,
+  "opponents": null,
+  "episodes": 128,
+  "seed": 0,
+  "metrics": {
+   "started": {
+    "mean": 0.875,
+    "ci95": 0.05751925388014985
+   },
+   "race_finished": {
+    "mean": 0.8671875,
+    "ci95": 0.05902421112365403
+   },
+   "finish_time": {
+    "mean": 826.628266755525,
+    "ci95": 22.9324982281172
+   },
+   "race_rank": {
+    "mean": 1.0,
+    "ci95": 0.0
+   },
+   "legs_completed": {
+    "mean": 3.46875,
+    "ci95": 0.23609684449461613
+   },
+   "fouls": {
+    "mean": 0.09375,
+    "ci95": 0.05069485192611794
+   },
+   "contacts": {
+    "mean": 0.09375,
+    "ci95": 0.05069485192611794
+   },
+   "mark_hits": {
+    "mean": 0.09375,
+    "ci95": 0.05069485192611794
+   }
+  },
+  "seconds": 13.9
+ },
+ {
+  "agent": "digital",
+  "mode": "race-solo",
+  "weather": false,
+  "opponents": null,
+  "episodes": 128,
+  "seed": 0,
+  "metrics": {
+   "started": {
+    "mean": 1.0,
+    "ci95": 0.0
+   },
+   "race_finished": {
+    "mean": 1.0,
+    "ci95": 0.0
+   },
+   "finish_time": {
+    "mean": 702.4132113456726,
+    "ci95": 14.675132545776147
+   },
+   "race_rank": {
+    "mean": 1.0,
+    "ci95": 0.0
+   },
+   "legs_completed": {
+    "mean": 4.0,
+    "ci95": 0.0
+   },
+   "fouls": {
+    "mean": 0.125,
+    "ci95": 0.05751925388014985
+   },
+   "contacts": {
+    "mean": 0.125,
+    "ci95": 0.05751925388014985
+   },
+   "mark_hits": {
+    "mean": 0.125,
+    "ci95": 0.05751925388014985
+   }
+  },
+  "seconds": 13.4
+ },
+ {
+  "agent": "digital",
+  "mode": "race-self",
+  "weather": false,
+  "opponents": null,
+  "episodes": 128,
+  "seed": 0,
+  "metrics": {
+   "started": {
+    "mean": 1.0,
+    "ci95": 0.0
+   },
+   "race_finished": {
+    "mean": 0.9984375,
+    "ci95": 0.0030625000000000006
+   },
+   "finish_time": {
+    "mean": 714.4696005760038,
+    "ci95": 6.976174422226272
+   },
+   "race_rank": {
+    "mean": 3.0,
+    "ci95": 0.10965303081743404
+   },
+   "legs_completed": {
+    "mean": 3.9984375,
+    "ci95": 0.0030625000000000006
+   },
+   "fouls": {
+    "mean": 1.1125,
+    "ci95": 0.08722306723871243
+   },
+   "contacts": {
+    "mean": 2.7765625,
+    "ci95": 0.15928755331718247
+   },
+   "mark_hits": {
+    "mean": 0.1953125,
+    "ci95": 0.03908023306409388
+   }
+  },
+  "seconds": 21.4
+ },
+ {
+  "agent": "random",
+  "mode": "race-vs",
+  "weather": false,
+  "opponents": "digital",
+  "episodes": 128,
+  "seed": 0,
+  "metrics": {
+   "started": {
+    "mean": 0.1328125,
+    "ci95": 0.05902421112365403
+   },
+   "race_finished": {
+    "mean": 0.0,
+    "ci95": 0.0
+   },
+   "finish_time": {
+    "mean": NaN,
+    "ci95": 0.0
+   },
+   "race_rank": {
+    "mean": 5.0,
+    "ci95": 0.0
+   },
+   "legs_completed": {
+    "mean": 0.0,
+    "ci95": 0.0
+   },
+   "fouls": {
+    "mean": 0.5859375,
+    "ci95": 0.1366825394960907
+   },
+   "contacts": {
+    "mean": 0.828125,
+    "ci95": 0.2017388042805822
+   },
+   "mark_hits": {
+    "mean": 0.3671875,
+    "ci95": 0.12652572494782566
+   }
+  },
+  "seconds": 22.2
+ },
+ {
+  "agent": "examples.my_agent:make_policy",
+  "mode": "race-vs",
+  "weather": false,
+  "opponents": "digital",
+  "episodes": 128,
+  "seed": 0,
+  "metrics": {
+   "started": {
+    "mean": 0.8828125,
+    "ci95": 0.055940854054197194
+   },
+   "race_finished": {
+    "mean": 0.875,
+    "ci95": 0.05751925388014985
+   },
+   "finish_time": {
+    "mean": 821.120675768171,
+    "ci95": 21.96195703006688
+   },
+   "race_rank": {
+    "mean": 4.9765625,
+    "ci95": 0.045937499999999985
+   },
+   "legs_completed": {
+    "mean": 3.5,
+    "ci95": 0.2300770155205994
+   },
+   "fouls": {
+    "mean": 0.59375,
+    "ci95": 0.16476387154392108
+   },
+   "contacts": {
+    "mean": 1.2734375,
+    "ci95": 0.3681199147326662
+   },
+   "mark_hits": {
+    "mean": 0.1796875,
+    "ci95": 0.08540784345233833
+   }
+  },
+  "seconds": 20.7
+ }
+]

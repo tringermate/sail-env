@@ -327,3 +327,30 @@ def test_a_boat_racing_alone_is_not_ranked():
         if bool(done[0]):
             break
     assert bool(info["race_finished"][0]) and float(r[0]) == pytest.approx(1.0, abs=1e-6)
+
+
+def test_rrs18_does_not_apply_between_opposite_tacks_at_the_windward_mark():
+    w = P.course_beat_length
+    # Inside the zone below the windward mark: A on starboard coming in from the right, B on port to the left,
+    # closer to the mark. Without RRS 18.1(a) B would get mark-room; with it, port keeps clear of starboard.
+    fs = race_state([(10.0, w - 12.0, -45.0, 6.0), (-4.0, w - 8.0, 45.0, 6.0)])
+    p18 = P.replace(rrs18_opposite_tacks=True)
+    _, old, _, _, _ = STEP(fs, hold())
+    _, new, _, _, _ = jax.jit(lambda s, a: ENV.step_env(jax.random.PRNGKey(0), s, a, p18))(fs, hold())
+    assert bool(new.in_zone[0]) and bool(new.in_zone[1])
+    assert bool(old.room[0, 1])  # sail_env 0.1: A (outside) owes B room across tacks
+    assert not bool(new.room[0, 1]) and not bool(new.room[1, 0])
+    k = np.asarray(ENV.keep_clear_matrix(new, new.boats.boat, 0.0, p18))
+    assert k[1, 0] and not k[0, 1]  # RRS 10
+
+
+def test_rrs18_3_a_boat_tacking_in_the_zone_owes_room():
+    w = P.course_beat_length
+    p18 = P.replace(rrs18_opposite_tacks=True)
+    # B was on port, has just passed head to wind inside the zone onto starboard, next to A on starboard.
+    prev = race_state([(10.0, w - 12.0, -45.0, 6.0), (2.0, w - 14.0, 10.0, 3.0)])
+    now = race_state([(9.0, w - 11.0, -45.0, 6.0), (2.0, w - 13.5, -10.0, 3.0)])
+    prev = prev.replace(in_zone=prev.in_zone.at[:2].set(True))
+    zero = jnp.zeros(5)
+    fs, _, _, _ = ENV.post_step(prev, now, zero, jnp.zeros(5, bool), {}, p18)
+    assert bool(fs.room[1, 0]) and not bool(fs.room[0, 1])  # the tacker (B) owes A room

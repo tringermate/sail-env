@@ -98,3 +98,22 @@ def test_apparent_wind_shadow_swings_to_the_leeward_quarter():
     pair = boats((0.0, 0.0, -42.0), (sx, sy, -42.0)).replace(speed=jnp.array([kn(6), kn(6)], jnp.float32))
     assert float(shadow_factors(pair, 0.0, p, tws)[1, 0]) < 1.0
     assert float(shadow_factors(pair, 0.0, P, tws)[1, 0]) == 1.0
+
+
+def test_rrs13_tack_only_gybing_boat_keeps_its_rights():
+    from sail_env.fleet_env import rules_boats
+
+    # Running: A on port (heading SSE, TWA -160), B on starboard (heading SSW, TWA +160) in the middle of a
+    # gybe (manoeuvring). RRS 13 is about tacking only: B on starboard keeps right of way over port.
+    bs = boats((0.0, 0.0, 160.0), (6.0, 0.0, 200.0, True))
+    none = jnp.zeros(2, bool)
+    old = np.asarray(must_keep_clear(rules_boats(bs, none, 0.0, P), 0.0, L))
+    new = np.asarray(must_keep_clear(rules_boats(bs, none, 0.0, P.replace(rrs13_tack_only=True)), 0.0, L))
+    assert old[1, 0] and not old[0, 1]  # sail_env 0.1: any manoeuvre keeps clear
+    assert new[0, 1] and not new[1, 0]  # RRS 10: port keeps clear of the gybing starboard boat
+    # A tacking boat (|TWA| < 90) still keeps clear, and so does a boat taking a penalty.
+    tack = boats((0.0, 0.0, -45.0), (-5.0, 8.0, -10.0, True))
+    k = np.asarray(must_keep_clear(rules_boats(tack, none, 0.0, P.replace(rrs13_tack_only=True)), 0.0, L))
+    assert k[1, 0] and not k[0, 1]
+    k = np.asarray(must_keep_clear(rules_boats(bs, jnp.array([False, True]), 0.0, P.replace(rrs13_tack_only=True)), 0.0, L))
+    assert k[1, 0] and not k[0, 1]

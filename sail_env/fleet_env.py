@@ -63,6 +63,15 @@ def _first(x):
     return jnp.broadcast_to(x[0], x.shape)
 
 
+def rules_boats(boats, taking, wind_dir, params: EnvParams):
+    """Boats as the right-of-way rules see them: `manoeuvring` = keeps clear like a tacking boat (RRS 13),
+    which includes a boat taking a penalty (RRS 22.2). With rrs13_tack_only a gybe does not count."""
+    turning = boats.manoeuvring
+    if params.rrs13_tack_only:  # static
+        turning = turning & (jnp.abs(signed_twa(boats.heading, wind_dir)) < 0.5 * jnp.pi)
+    return boats.replace(manoeuvring=turning | taking)
+
+
 class FleetStartEnv:
     def __init__(self, params: EnvParams):
         self.solo = SoloStartEnv(params)
@@ -192,8 +201,7 @@ class FleetStartEnv:
         # A boat taking a penalty keeps clear like a tacking boat (RRS 22.2); one still getting clear
         # has normal rights.
         taking = (serving & (left > 0.0)) if params.penalty_turn else (left > 0.0)
-        rules_boats = st2.boat.replace(manoeuvring=st2.boat.manoeuvring | taking)
-        keep_clear = self.keep_clear_matrix(fs, rules_boats, wind_dir, params)
+        keep_clear = self.keep_clear_matrix(fs, rules_boats(st2.boat, taking, wind_dir, params), wind_dir, params)
         at_fault = keep_clear & ~keep_clear.T
         undecided = keep_clear == keep_clear.T  # no rule (or both): penalise both
         turned = jnp.abs(wrap_angle(st2.boat.heading - fs.boats.boat.heading))  # course change this step
@@ -287,8 +295,7 @@ class FleetStartEnv:
         b = st.boat
         wind_dir, tws = self.local_winds(st, params)
         taking = fs.penalty_turning | ((fs.penalty_left > 0.0) & (params.penalty_clear_distance <= 0.0))
-        rules_boats = b.replace(manoeuvring=b.manoeuvring | taking)  # taking a penalty: keep clear
-        keep_clear = self.keep_clear_matrix(fs, rules_boats, wind_dir, params)  # [i, j]: i keeps clear of j
+        keep_clear = self.keep_clear_matrix(fs, rules_boats(b, taking, wind_dir, params), wind_dir, params)  # [i, j]: i keeps clear of j
         shadow = shadow_factors(b, wind_dir, params, tws)  # [i, j]: factor i gets from j
 
         fx, fy = heading_vector(b.heading)

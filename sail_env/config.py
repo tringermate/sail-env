@@ -131,6 +131,14 @@ class EnvParams:
     # to mark-room: rounding the mark is allowed). Off by default: the presets are unchanged.
     rrs16: bool = struct.field(pytree_node=False, default=False)
     rrs16_turn: float = deg(10.0)
+    # RRS 13 covers tacking only: from passing head to wind until close-hauled. Off: a boat in any manoeuvre
+    # (tack or gybe) keeps clear, as in sail_env 0.1. On: only a tacking boat (manoeuvring with |TWA| < 90 deg);
+    # a gybing boat keeps its rights under RRS 10-12.
+    rrs13_tack_only: bool = struct.field(pytree_node=False, default=False)
+    # RRS 18.1(a): mark-room does not apply between boats on opposite tacks on a beat to windward (the
+    # windward mark: port/starboard there is RRS 10). With it, a boat that then passes head to wind inside the
+    # zone onto the other's tack owes her room and keeps clear (a simplified RRS 18.3). Off: as sail_env 0.1.
+    rrs18_opposite_tacks: bool = struct.field(pytree_node=False, default=False)
     foul_penalty: float = 1.0  # terminal reward -foul_penalty with a penalty still unserved at the end
     # Avoid contact at all times (RRS 14): every new contact (with a boat or a mark) costs every boat
     # involved this much reward, on top of the time penalty for the boat at fault.

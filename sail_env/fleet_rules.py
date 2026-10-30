@@ -4,7 +4,8 @@ All functions take stacked boats (leading axis = boat) and return pairwise (N, N
 work under jit/vmap. Conventions as in geometry.py (compass headings, TWA > 0 = starboard tack).
 
 Right of way (a subset of the Racing Rules of Sailing, as in the brief):
-    - a boat that is tacking (or gybing) keeps clear                  (RRS 13)
+    - a boat that is tacking keeps clear                               (RRS 13; a gybing boat too unless
+                                                                        EnvParams.rrs13_tack_only, see fleet_env.rules_boats)
     - port keeps clear of starboard                                    (RRS 10)
     - same tack, overlapped: windward keeps clear                      (RRS 11)
     - same tack, not overlapped: the boat clear astern keeps clear     (RRS 12)

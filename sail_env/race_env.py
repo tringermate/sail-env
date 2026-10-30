@@ -26,7 +26,9 @@ Everything from the fleet start applies all race long: physics, wind shadow, rig
 marks as obstacles (touching one = penalty), penalty turns. Mark-room (simplified RRS 18): when the
 first of two boats rounding the same mark reaches the zone (zone_bl boat lengths), an inside boat
 that is overlapped, or a boat clear ahead, is entitled to room; while that lasts, the boat owing room
-must keep clear (it is at fault in a contact). Finished boats leave the course.
+must keep clear (it is at fault in a contact). With EnvParams.rrs18_opposite_tacks, mark-room does not apply
+between boats on opposite tacks at the windward mark (RRS 18.1(a)), and a boat tacking onto the other's tack
+in the zone owes her room (simplified RRS 18.3). Finished boats leave the course.
 
 Reward (all optional, set in EnvParams): race_finish_reward on finishing, a zero-sum ranking by
 finishing order at the end (race_rank_reward; unfinished boats are ranked by legs done and distance to
@@ -55,7 +57,7 @@ import jax.numpy as jnp
 
 from sail_env.fleet_env import FleetStartEnv, FleetState
 from sail_env.fleet_rules import clear_astern
-from sail_env.geometry import heading_vector
+from sail_env.geometry import heading_vector, signed_twa
 from sail_env.physics import bow_position
 from sail_env.rules import crossing
 from sail_env.start_env import N_NEIGHBOURS, NEIGHBOUR_FEATURES, OWN_FEATURES
@@ -276,6 +278,17 @@ class RaceEnv(FleetStartEnv):
         owes = jnp.where(overlapped, d_t[:, None] > d_t[None, :], astern)  # outside boat / boat astern owes room
         room = jnp.where(same & first, owes, fs_prev.room)
         keep = same & (in_zone[:, None] | in_zone[None, :]) & ~advance[:, None] & ~advance[None, :]
+        if params.rrs18_opposite_tacks:  # static. RRS 18.1(a): not between opposite tacks at the windward mark
+            stbd = signed_twa(fs.boats.boat.heading, self.local_winds(fs.boats, params)[0]) > 0.0
+            stbd_prev = signed_twa(fs_prev.boats.boat.heading, self.local_winds(fs_prev.boats, params)[0]) > 0.0
+            w_pair = (target[:, None] == 2) & (target[None, :] == 2)
+            applies = ~(w_pair & (stbd[:, None] != stbd[None, :]))
+            applies_prev = ~(w_pair & (stbd_prev[:, None] != stbd_prev[None, :]))
+            # RRS 18.3 (simplified): a boat that passes head to wind in the zone onto the other's tack owes her room.
+            became = same & applies & ~applies_prev & (in_zone[:, None] | in_zone[None, :])
+            tacked = stbd != stbd_prev
+            room = jnp.where(became, tacked[:, None] & ~tacked[None, :], room)
+            keep = keep & applies
         room = room & keep
 
         # Finished boats leave the course.
